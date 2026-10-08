@@ -43,3 +43,29 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | CI sin SonarCloud por ahora | Necesita un token de la cuenta |
 | Swagger UI en `/api/docs`, OpenAPI en `/api/openapi`, apagados en producción | No exponer la API documentada en producción |
 | Perfil por defecto `dev` | El backend arranca desde el IDE sin configurar nada |
+
+## Hito 2 (2026-10-08)
+
+| Decisión | Por qué |
+|---|---|
+| Sesiones en PostgreSQL con Spring Session JDBC (cookie `SESSION`, HttpOnly, SameSite=Lax, 14 días) | El servidor no guarda estado en memoria y se pueden sumar instancias. Sin JWT en el navegador |
+| Cookie configurada con un bean `CookieSerializer` | En Boot 4 las propiedades `server.servlet.session.cookie.*` no llegan a Spring Session: la cookie salía sin HttpOnly |
+| CSRF en modo SPA: cookie `XSRF-TOKEN` y encabezado `X-XSRF-TOKEN`; `GET /api/auth/csrf` lo entrega | Patrón estándar de Spring Security para frontends que llaman a la API |
+| Un solo principal (`AuthenticatedUser`) para contraseña, link de acceso y Google, guardado por `SessionAuthenticator` | El resto del código trabaja con un solo tipo, sin importar cómo entró la persona |
+| `shared.security` define `BusinessRoleResolver` y `ExternalIdentityResolver`; `users` los implementa | La seguridad no depende del módulo de usuarios: respeta los límites de Modulith |
+| Login con contraseña con hash señuelo cuando el email no existe | La respuesta tarda lo mismo y no revela qué emails están registrados |
+| Registro con email existente responde 409 | Mejor experiencia; el límite por IP acota que se use para averiguar emails |
+| Link de acceso responde 202 siempre | No revela si el email tiene cuenta |
+| Usar un link de acceso verifica el email | Prueba que la persona controla el email |
+| Google sobre una cuenta sin verificar: vincula, verifica y descarta la contraseña | Quien registró un email ajeno no conserva el acceso (pre-account takeover) |
+| Solo se acepta Google con `email_verified` | Sin eso cualquiera podría declarar el email de otra persona |
+| Tokens de email: 256 bits aleatorios, se guarda solo el SHA-256, un uso, 24 h (verificación) o 15 min (acceso) | Quien lea la base no puede usar los tokens |
+| Emails de cuenta después del commit, en segundo plano y sin reintentos | Si fallan, se piden de nuevo. Los eventos persistidos de Modulith guardarían el token en claro |
+| Emails de texto plano | Las plantillas editables llegan con notificaciones (Hito 7) |
+| Rate limit por IP (10 por minuto) en memoria con Caffeine y Bucket4j | Suficiente con una instancia; se pasa a almacenamiento compartido en el Hito 10 si hace falta |
+| Login con Google en el perfil `google`, con redirección a través del frontend | Sin credenciales la app arranca igual; la cookie queda en el dominio del frontend |
+| Membresía con `business_id` sin clave foránea todavía | La tabla `business` llega en el Hito 3, que agrega la FK |
+| El acceso de un ADMIN a un negocio todavía no se audita | La auditoría llega en el Hito 3; el `PermissionEvaluator` es el punto donde se va a registrar |
+| Repositorios: interfaces de Spring Data en el dominio que extienden `Repository` con solo los métodos necesarios | Evita una capa de adaptadores que solo delegaría |
+| Ids UUID v7 generados por la entidad | Inserción ordenada en índices y entidades válidas desde que se crean |
+| Health de mail desactivado | Una caída del proveedor de email no debe marcar la API como caída |

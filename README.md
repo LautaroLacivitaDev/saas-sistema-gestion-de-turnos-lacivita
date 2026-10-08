@@ -54,6 +54,43 @@ npm run dev
 
 Abrí http://localhost:3000. Las llamadas a `/api/*` se redirigen al backend en `localhost:8080`. Para cambiar esa dirección, copiá `.env.example` como `.env.local`.
 
+## Autenticación
+
+La API usa sesión en el servidor (guardada en PostgreSQL) con la cookie `SESSION` (HttpOnly). Los endpoints están en `/api/auth` y se pueden probar desde Swagger UI.
+
+| Endpoint | Para qué |
+|---|---|
+| `GET /api/auth/csrf` | Entrega el token CSRF (también queda en la cookie `XSRF-TOKEN`). Todo `POST` lo exige en el encabezado `X-XSRF-TOKEN` |
+| `POST /api/auth/register` | Crea la cuenta, inicia la sesión y envía el email de verificación |
+| `POST /api/auth/login` | Inicia sesión con email y contraseña |
+| `POST /api/auth/login-link` | Envía un link de acceso por email |
+| `POST /api/auth/login-link/consume` | Inicia sesión con el token del link |
+| `POST /api/auth/email-verification` | Verifica el email con el token del link |
+| `POST /api/auth/email-verification/resend` | Reenvía el link de verificación |
+| `GET /api/auth/me` | Devuelve la cuenta con sesión iniciada |
+| `POST /api/auth/logout` | Cierra la sesión |
+
+En desarrollo, los emails con los links se ven en Mailpit: http://localhost:8025.
+
+### Login con Google
+
+Está desactivado hasta que configures las credenciales:
+
+1. En [Google Cloud Console](https://console.cloud.google.com/apis/credentials), creá un **ID de cliente de OAuth** de tipo *Aplicación web*.
+2. Como **URI de redireccionamiento autorizado** cargá `http://localhost:3000/api/auth/oauth2/code/google`. Pasa por el frontend para que la cookie de sesión quede en el mismo dominio.
+3. Levantá el backend con el perfil `google` y las credenciales como variables de entorno:
+
+   ```powershell
+   $env:SPRING_PROFILES_ACTIVE = "dev,google"
+   $env:GOOGLE_CLIENT_ID = "..."
+   $env:GOOGLE_CLIENT_SECRET = "..."
+   cd backend; .\mvnw.cmd spring-boot:run
+   ```
+
+4. El login empieza en http://localhost:3000/api/auth/oauth2/authorization/google.
+
+Nunca subas las credenciales al repositorio.
+
 ## Pruebas
 
 ```bash
