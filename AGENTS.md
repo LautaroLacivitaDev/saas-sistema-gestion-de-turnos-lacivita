@@ -7,8 +7,64 @@ Instrucciones para cualquier agente de IA (Claude Code, Codex, Cursor, etc.) que
 Plataforma SaaS de gestión de turnos para barberías, centros de estética y negocios similares. Cada negocio tiene su página pública de reservas en `/{slug}`, puede tener varias sucursales y trabaja con barberos que fijan sus propios servicios y precios.
 
 - Especificación del MVP (fuente de verdad): [docs/especificacion-mvp.md](docs/especificacion-mvp.md)
-- Estado actual, decisiones tomadas y pendientes: [MEMORY.md](MEMORY.md)
+- Plan de hitos y su estado: [docs/plan-mvp.md](docs/plan-mvp.md)
+- Registro completo de decisiones: [docs/decisiones.md](docs/decisiones.md)
+- Estado actual y aprendizajes: [MEMORY.md](MEMORY.md)
 - Alcance actual: **solo Fase 1 (MVP)**. No implementar pagos, WhatsApp, campañas, comisiones, caja, inventario, reseñas, lista de espera, turnos recurrentes, planes SaaS, dominio propio ni rol de recepción.
+
+## Forma de trabajo esperada
+
+Trabajá como un **desarrollador senior** en un proyecto que tiene que **escalar** y mantenerse durante años: código **modular**, con **encapsulamiento** estricto y buenas prácticas de **programación orientada a objetos y de Java**. Cada decisión de diseño tiene que poder justificarse. Si una solución rápida contradice estas reglas, elegí la correcta o consultá antes.
+
+### Diseño orientado a objetos
+
+- **Encapsulamiento:** atributos `private`, sin setters públicos en el dominio. El estado cambia solo mediante métodos con intención de negocio que validan sus reglas (`appointment.cancel(policy, now)`, no `setStatus(CANCELLED)`). Un objeto nunca queda en un estado inválido.
+- **Dominio rico:** las reglas de negocio viven en las entidades y objetos de valor. Los servicios de aplicación orquestan (transacción, permisos, repositorios, eventos), no deciden reglas.
+- **Objetos de valor inmutables** con `record` para conceptos con reglas propias (`Slug`, `Email`, `Money`, `TimeRange`, `PhoneNumber`). Se validan en el constructor: si existe, es válido.
+- **SOLID**, composición antes que herencia, e interfaces solo donde hay variación real o un punto de extensión (por ejemplo `NotificationChannel`).
+- **Colecciones:** nunca exponer una colección interna modificable. Devolver copias o vistas inmodificables.
+- **Igualdad:** entidades por identidad, objetos de valor por valor.
+
+### Encapsulamiento entre módulos
+
+- Cada módulo expone una **API pública mínima** en su paquete raíz (interfaces de servicio, DTOs como `record` y eventos). Todo lo demás va en subpaquetes internos, que Spring Modulith trata como privados.
+- Visibilidad mínima: clases e interfaces **package-private por defecto**. `public` solo cuando otro paquete realmente lo necesita.
+- Estructura sugerida dentro de cada módulo:
+
+  ```
+  booking/
+  ├── BookingApi.java, AppointmentBooked.java, ...   # API pública y eventos
+  ├── domain/          # Entidades, objetos de valor, reglas, interfaces de repositorio
+  ├── application/     # Casos de uso (orquestación, transacciones, permisos)
+  ├── persistence/     # Repositorios JPA y consultas nativas
+  └── web/             # Controladores REST y DTOs de entrada y salida
+  ```
+
+- Nunca exponer entidades JPA fuera del módulo ni en la API REST: se mapean a DTOs (MapStruct).
+- Entre módulos: llamadas a la API pública para consultas y **eventos** para efectos secundarios (avisar, auditar), así un módulo no depende de quién reacciona.
+
+### Java
+
+- Java 25 moderno: `record`, `sealed` para jerarquías cerradas (estados, resultados), `switch` con pattern matching, `var` solo cuando el tipo es obvio, text blocks para SQL.
+- **Inyección por constructor**, dependencias `final`. Nada de `@Autowired` en campos (lo verifica ArchUnit).
+- **Nulos:** `Optional` solo como tipo de retorno; nunca devolver `null` en colecciones; validar en los bordes (Bean Validation en la API, constructores en el dominio).
+- **Excepciones:** de dominio específicas y con nombre de negocio (`SlotNoLongerAvailableException`), traducidas a Problem Details en el manejador global. Nunca capturar y silenciar.
+- **Dinero** con `BigDecimal` (o un `Money` propio), nunca `double`. **Fechas** con `java.time` (`Instant` para persistir, `ZonedDateTime` para mostrar) y un `Clock` inyectado para poder probar.
+- **Transacciones** en la capa de aplicación (`@Transactional`), con `readOnly = true` en las lecturas.
+- Métodos cortos con un solo propósito, nombres que expresan intención, sin código muerto. Los comentarios explican el *por qué*, no el *qué*.
+
+### Escalabilidad
+
+- Servidores sin estado propio en memoria: todo lo que deba compartirse entre instancias va a la base de datos (o a Redis si se justifica).
+- Listados siempre paginados. Evitar N+1 con consultas específicas o *fetch joins*. Cada consulta frecuente tiene su índice, creado en una migración.
+- Caché solo para datos que cambian poco y con una regla clara de invalidación.
+- Lo que no necesita respuesta inmediata (emails, recordatorios) se procesa de forma asíncrona con reintentos.
+
+### Pruebas como parte del diseño
+
+- Las reglas de dominio se prueban con **pruebas unitarias sin Spring**: rápidas y sin base de datos.
+- Persistencia, permisos, concurrencia y aislamiento entre negocios se prueban con **integración contra PostgreSQL real**.
+- Nombres de prueba que describen el comportamiento (`cancelingAfterDeadlineIsRejected`) y estructura *given / when / then*.
 
 ## Estructura del repositorio
 
@@ -51,7 +107,7 @@ Antes de dar por terminado un cambio: `verify` en el backend y lint, typecheck, 
 - JDK 25 (Eclipse Temurin), Node 24, Docker Desktop (con WSL 2).
 - Testcontainers y Docker Compose requieren Docker Desktop corriendo.
 - Configuraciones de ejecución compartidas en `.run/` (versionadas). `.idea/` y `*.iml` no se versionan.
-- Usar tipos de configuración que funcionen en IntelliJ Community (Application, Maven, npm).
+- Usar tipos de configuración que funcionen en IntelliJ Community (Application, Maven, Shell Script). Community no tiene configuraciones de npm.
 
 ## Arquitectura
 
@@ -85,7 +141,7 @@ Reglas:
 - **Migraciones:** Flyway, un script versionado por cambio. Nunca editar una migración ya commiteada.
 - **Errores de la API:** Problem Details (RFC 9457) desde un manejador global.
 - **Formato:** Spotless. Correrlo antes de cada commit.
-- **Ambigüedades:** elegir la opción más simple que cumpla el requerimiento, dejar un comentario `// DECISIÓN:` y registrarla en [MEMORY.md](MEMORY.md).
+- **Ambigüedades:** elegir la opción más simple que cumpla el requerimiento, dejar un comentario `// DECISIÓN:` y registrarla en [docs/decisiones.md](docs/decisiones.md) (y en [MEMORY.md](MEMORY.md) si es importante).
 - No inventar funcionalidades que no estén en la especificación.
 
 ## Pruebas
@@ -96,7 +152,17 @@ Reglas:
 
 ## Forma de trabajo
 
-1. Trabajar por hitos (lista en [MEMORY.md](MEMORY.md)). No avanzar al siguiente sin cerrar el actual.
-2. Un hito está terminado cuando: compila, pasan todas las pruebas (backend y frontend), no hay violaciones de límites entre módulos, los permisos están probados por rol, las migraciones son reproducibles y la documentación está actualizada.
-3. Al cerrar un hito: resumir qué quedó hecho, cómo probarlo y qué decisiones se tomaron, y actualizar [MEMORY.md](MEMORY.md) y la tabla de comandos de este archivo.
-4. No cambiar el stack sin consultar.
+
+1. Un hito está terminado cuando: compila, pasan todas las pruebas (backend y frontend), no hay violaciones de límites entre módulos, los permisos están probados por rol, las migraciones son reproducibles y la documentación está actualizada.
+2. Al cerrar un hito: resumir qué quedó hecho, cómo probarlo y qué decisiones se tomaron, y actualizar [MEMORY.md](MEMORY.md), el estado en [docs/plan-mvp.md](docs/plan-mvp.md), [docs/decisiones.md](docs/decisiones.md) y la tabla de comandos de este archivo.
+3. No cambiar el stack sin consultar.
+
+## Memoria
+- Al empezar, lee `MEMORY.md` para conocer el estado del proyecto y las decisiones
+  tomadas.
+- Al terminar una tarea, actualízalo: estado actual, decisiones importantes (con su
+  porqué) y errores a evitar.
+- Mantenlo breve (máximo ~50 líneas): resume o elimina lo que ya no aporte.
+- Si algo se convierte en una regla permanente, propón moverlo a `AGENTS.md` en lugar de
+  dejarlo en la memoria.
+- No guardes nunca datos sensibles (claves, tokens, datos personales).
