@@ -1,6 +1,8 @@
 package com.lacivita.turnos.users.domain;
 
 import com.lacivita.turnos.shared.domain.Email;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.Query;
@@ -28,6 +30,8 @@ public interface UserRepository extends Repository<User, UUID> {
     }
 
     Optional<User> findByEmail(Email email);
+
+    List<User> findAllByIdIn(Collection<UUID> ids);
 
     boolean existsByEmail(Email email);
 

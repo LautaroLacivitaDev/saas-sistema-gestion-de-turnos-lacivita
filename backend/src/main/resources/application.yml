@@ -2,7 +2,7 @@
 # Lo específico de cada entorno va en application-{perfil}.yml.
 spring:
   application:
-    name: turnos
+    name: laciturnos
   profiles:
     # Sin perfil explícito se usa dev, así la aplicación arranca desde el IDE sin configurar nada.
     default: dev
@@ -19,6 +19,9 @@ spring:
           time_zone: UTC
   flyway:
     locations: classpath:db/migration
+    placeholders:
+      # Rol sin privilegios con el que se conecta la aplicación (ver V8).
+      app_role: turnos_app
   mvc:
     problemdetails:
       enabled: true
@@ -39,7 +42,7 @@ app:
   frontend-url: http://localhost:3000
   mail:
     from: no-responder@turnos.local
-    from-name: Turnos
+    from-name: Laciturnos
   rate-limit:
     requests-per-minute: 10
 

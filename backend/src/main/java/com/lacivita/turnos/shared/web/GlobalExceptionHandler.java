@@ -2,6 +2,7 @@ package com.lacivita.turnos.shared.web;
 
 import com.lacivita.turnos.shared.domain.ConflictException;
 import com.lacivita.turnos.shared.domain.DomainException;
+import com.lacivita.turnos.shared.domain.ForbiddenException;
 import com.lacivita.turnos.shared.domain.InvalidValueException;
 import com.lacivita.turnos.shared.domain.NotFoundException;
 import com.lacivita.turnos.shared.domain.RuleViolationException;
@@ -43,6 +44,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case NotFoundException ignored -> HttpStatus.NOT_FOUND;
             case ConflictException ignored -> HttpStatus.CONFLICT;
             case RuleViolationException ignored -> HttpStatus.UNPROCESSABLE_CONTENT;
+            case ForbiddenException ignored -> HttpStatus.FORBIDDEN;
             case InvalidValueException ignored -> HttpStatus.BAD_REQUEST;
         };
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());

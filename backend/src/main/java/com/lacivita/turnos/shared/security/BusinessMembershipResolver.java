@@ -4,10 +4,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Consulta el rol de una persona en un negocio. Lo implementa el módulo de usuarios, dueño de las
+ * Consulta la membresía de una persona en un negocio. Lo implementa el módulo de usuarios, dueño de las
  * membresías; la seguridad depende solo de esta interfaz y no del módulo.
  */
-public interface BusinessRoleResolver {
+public interface BusinessMembershipResolver {
 
-    Optional<BusinessRole> roleOf(UUID userId, UUID businessId);
+    Optional<BusinessMembership> membershipOf(UUID userId, UUID businessId);
 }

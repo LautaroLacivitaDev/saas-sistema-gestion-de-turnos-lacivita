@@ -4,6 +4,12 @@ spring:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
+  # Flyway usa el rol dueño de las tablas; la aplicación, el rol sin privilegios de DATABASE_USERNAME.
+  flyway:
+    user: ${FLYWAY_USERNAME}
+    password: ${FLYWAY_PASSWORD}
+    placeholders:
+      app_role: ${DATABASE_USERNAME}
   mail:
     host: ${MAIL_HOST}
     port: ${MAIL_PORT:587}

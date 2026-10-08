@@ -7,30 +7,43 @@ import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.core.Authentication;
 
 /**
- * Único punto donde se decide si una persona puede actuar sobre un negocio.
+ * Único punto donde se decide si una persona puede actuar sobre un negocio o una sucursal.
  *
- * <p>Se usa desde {@code @PreAuthorize}:
+ * <p>Se usa desde {@code @PreAuthorize}, con el rol mínimo exigido ({@code OWNER}, {@code MANAGER} o
+ * {@code BARBER}):
  *
- * <pre>{@code @PreAuthorize("hasPermission(#businessId, 'Business', 'MANAGER')")}</pre>
+ * <pre>{@code
+ * @PreAuthorize("hasPermission(#businessId, 'Business', 'MANAGER')")
+ * @PreAuthorize("hasPermission(#branchId, 'Branch', 'BARBER')")
+ * }</pre>
  *
- * <p>El permiso es el rol mínimo exigido ({@code OWNER}, {@code MANAGER} o {@code BARBER}). Un rol
- * superior incluye a los inferiores. Un {@link PlatformRole#ADMIN} tiene acceso a todos los negocios.
+ * <ul>
+ *   <li>Un rol superior incluye a los inferiores.
+ *   <li>En una sucursal, el gerente y el barbero solo pueden actuar si la tienen asignada. El dueño, en
+ *       todas.
+ *   <li>Un {@link PlatformRole#ADMIN} que no es miembro entra solo como soporte: con un motivo, que queda
+ *       registrado (ver {@link AuditedSupportAccess}).
+ * </ul>
  */
-// DECISIÓN: el acceso de un ADMIN a un negocio todavía no se audita. El registro de auditoría llega
-// en el Hito 3 y este evaluador es el lugar donde se va a registrar.
 class BusinessPermissionEvaluator implements PermissionEvaluator {
 
     static final String BUSINESS = "Business";
+    static final String BRANCH = "Branch";
 
-    private final BusinessRoleResolver roles;
+    private final BusinessMembershipResolver memberships;
+    private final BranchLocator branches;
+    private final SupportAccess supportAccess;
 
-    BusinessPermissionEvaluator(BusinessRoleResolver roles) {
-        this.roles = roles;
+    BusinessPermissionEvaluator(
+            BusinessMembershipResolver memberships, BranchLocator branches, SupportAccess supportAccess) {
+        this.memberships = memberships;
+        this.branches = branches;
+        this.supportAccess = supportAccess;
     }
 
     @Override
     public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
-        // Solo se admiten permisos por id de recurso, para que cada chequeo diga sobre qué negocio actúa.
+        // Solo se admiten permisos por id de recurso, para que cada chequeo diga sobre qué actúa.
         return false;
     }
 
@@ -40,16 +53,35 @@ class BusinessPermissionEvaluator implements PermissionEvaluator {
         if (!(authentication != null && authentication.getPrincipal() instanceof AuthenticatedUser user)) {
             return false;
         }
-        if (!BUSINESS.equals(targetType) || !(targetId instanceof UUID businessId)) {
-            throw new IllegalArgumentException("Tipo de recurso no soportado: " + targetType);
-        }
-        if (user.isAdmin()) {
-            return true;
+        if (!(targetId instanceof UUID id)) {
+            return false;
         }
         BusinessRole required = parseRole(permission);
-        return roles.roleOf(user.id(), businessId)
-                .map(role -> role.includes(required))
+        return switch (targetType) {
+            case BUSINESS -> canActOnBusiness(user, id, required);
+            case BRANCH -> canActOnBranch(user, id, required);
+            default -> throw new IllegalArgumentException("Tipo de recurso no soportado: " + targetType);
+        };
+    }
+
+    private boolean canActOnBusiness(AuthenticatedUser user, UUID businessId, BusinessRole required) {
+        boolean asMember = memberships
+                .membershipOf(user.id(), businessId)
+                .map(membership -> membership.role().includes(required))
                 .orElse(false);
+        return asMember || supportAccess.grant(user, businessId);
+    }
+
+    private boolean canActOnBranch(AuthenticatedUser user, UUID branchId, BusinessRole required) {
+        var businessId = branches.businessOf(branchId);
+        if (businessId.isEmpty()) {
+            return false;
+        }
+        boolean asMember = memberships
+                .membershipOf(user.id(), businessId.get())
+                .map(membership -> membership.role().includes(required) && membership.covers(branchId))
+                .orElse(false);
+        return asMember || supportAccess.grant(user, businessId.get());
     }
 
     private static BusinessRole parseRole(Object permission) {

@@ -1,5 +1,6 @@
 package com.lacivita.turnos.shared.security;
 
+import com.lacivita.turnos.shared.audit.AuditTrail;
 import com.lacivita.turnos.shared.config.AppProperties;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
@@ -18,6 +19,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -75,6 +77,7 @@ class SecurityConfiguration {
                         new PublicEndpointRateLimitFilter(
                                 publicEndpoints, properties.rateLimit().requestsPerMinute(), exceptionResolver),
                         CsrfFilter.class)
+                .addFilterAfter(new SignedInUserScopeFilter(), AnonymousAuthenticationFilter.class)
                 .authorizeHttpRequests(requests -> {
                     publicEndpoints.forEach(endpoint -> requests.requestMatchers(endpoint.method(), endpoint.path())
                             .permitAll());
@@ -147,14 +150,21 @@ class SecurityConfiguration {
 
     @Bean
     static MethodSecurityExpressionHandler methodSecurityExpressionHandler(
-            RoleHierarchy roleHierarchy, ObjectProvider<BusinessRoleResolver> roles) {
-        // El resolver se busca recién al primer chequeo: la seguridad de métodos se arma muy temprano y
-        // no debe forzar la creación de los repositorios JPA.
-        BusinessRoleResolver lazyRoles =
-                (userId, businessId) -> roles.getObject().roleOf(userId, businessId);
+            RoleHierarchy roleHierarchy,
+            ObjectProvider<BusinessMembershipResolver> memberships,
+            ObjectProvider<BranchLocator> branches,
+            ObjectProvider<AuditTrail> auditTrail) {
+        // Las dependencias se buscan recién al primer chequeo: la seguridad de métodos se arma muy
+        // temprano y no debe forzar la creación de los repositorios JPA.
+        BusinessMembershipResolver lazyMemberships =
+                (userId, businessId) -> memberships.getObject().membershipOf(userId, businessId);
+        BranchLocator lazyBranches = branchId -> branches.getObject().businessOf(branchId);
+        SupportAccess lazySupport =
+                (admin, businessId) -> new AuditedSupportAccess(auditTrail.getObject()).grant(admin, businessId);
+
         var handler = new DefaultMethodSecurityExpressionHandler();
         handler.setRoleHierarchy(roleHierarchy);
-        handler.setPermissionEvaluator(new BusinessPermissionEvaluator(lazyRoles));
+        handler.setPermissionEvaluator(new BusinessPermissionEvaluator(lazyMemberships, lazyBranches, lazySupport));
         return handler;
     }
 }

@@ -56,8 +56,9 @@ public class User {
 
     private Instant updatedAt;
 
+    /** Nulo hasta el primer guardado: así Spring Data distingue un alta (el id lo asignamos nosotros). */
     @Version
-    private long version;
+    private Long version;
 
     protected User() {
         // Requerido por JPA.

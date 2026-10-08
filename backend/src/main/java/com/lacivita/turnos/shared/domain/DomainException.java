@@ -5,11 +5,15 @@ package com.lacivita.turnos.shared.domain;
  * ({@code EmailAlreadyRegisteredException}, no {@code IllegalStateException}).
  *
  * <p>El manejador global de errores traduce cada familia a un estado HTTP: {@link NotFoundException}
- * a 404, {@link ConflictException} a 409, {@link RuleViolationException} a 422 e {@link
+ * a 404, {@link ConflictException} a 409, {@link RuleViolationException} a 422, {@link ForbiddenException} a 403 e {@link
  * InvalidValueException} a 400. El mensaje se muestra al usuario, así que va en español.
  */
 public abstract sealed class DomainException extends RuntimeException
-        permits NotFoundException, ConflictException, RuleViolationException, InvalidValueException {
+        permits NotFoundException,
+                ConflictException,
+                RuleViolationException,
+                ForbiddenException,
+                InvalidValueException {
 
     private final String code;
 

@@ -7,6 +7,7 @@ import com.lacivita.turnos.shared.domain.Email;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,10 +20,18 @@ class BusinessPermissionEvaluatorTests {
 
     static final UUID BUSINESS = UUID.randomUUID();
     static final UUID OTHER_BUSINESS = UUID.randomUUID();
+    static final UUID CENTRO = UUID.randomUUID();
+    static final UUID NORTE = UUID.randomUUID();
 
-    final Map<UUID, BusinessRole> rolesInBusiness = new HashMap<>();
-    final BusinessPermissionEvaluator evaluator = new BusinessPermissionEvaluator((userId, businessId) ->
-            businessId.equals(BUSINESS) ? Optional.ofNullable(rolesInBusiness.get(userId)) : Optional.empty());
+    final Map<UUID, BusinessMembership> membershipsInBusiness = new HashMap<>();
+    boolean supportGranted;
+
+    final BusinessPermissionEvaluator evaluator = new BusinessPermissionEvaluator(
+            (userId, businessId) -> businessId.equals(BUSINESS)
+                    ? Optional.ofNullable(membershipsInBusiness.get(userId))
+                    : Optional.empty(),
+            branchId -> branchId.equals(CENTRO) || branchId.equals(NORTE) ? Optional.of(BUSINESS) : Optional.empty(),
+            (admin, businessId) -> admin.isAdmin() && supportGranted);
 
     @ParameterizedTest(name = "{0} pide {1}: {2}")
     @CsvSource({
@@ -37,8 +46,7 @@ class BusinessPermissionEvaluatorTests {
         "BARBER,  BARBER,  true",
     })
     void eachRoleIncludesTheOnesBelowIt(BusinessRole role, BusinessRole required, boolean expected) {
-        var user = user(PlatformRole.USER);
-        rolesInBusiness.put(user.id(), role);
+        var user = member(role, Set.of(CENTRO));
 
         assertThat(evaluator.hasPermission(authenticated(user), BUSINESS, "Business", required.name()))
                 .isEqualTo(expected);
@@ -46,10 +54,35 @@ class BusinessPermissionEvaluatorTests {
 
     @Test
     void aRoleInOneBusinessGrantsNothingInAnother() {
-        var user = user(PlatformRole.USER);
-        rolesInBusiness.put(user.id(), BusinessRole.OWNER);
+        var owner = member(BusinessRole.OWNER, Set.of());
 
-        assertThat(evaluator.hasPermission(authenticated(user), OTHER_BUSINESS, "Business", "BARBER"))
+        assertThat(evaluator.hasPermission(authenticated(owner), OTHER_BUSINESS, "Business", "BARBER"))
+                .isFalse();
+    }
+
+    @Test
+    void staffCanOnlyActOnTheirAssignedBranches() {
+        var barber = member(BusinessRole.BARBER, Set.of(CENTRO));
+
+        assertThat(evaluator.hasPermission(authenticated(barber), CENTRO, "Branch", "BARBER"))
+                .isTrue();
+        assertThat(evaluator.hasPermission(authenticated(barber), NORTE, "Branch", "BARBER"))
+                .isFalse();
+    }
+
+    @Test
+    void theOwnerActsOnEveryBranch() {
+        var owner = member(BusinessRole.OWNER, Set.of());
+
+        assertThat(evaluator.hasPermission(authenticated(owner), NORTE, "Branch", "OWNER"))
+                .isTrue();
+    }
+
+    @Test
+    void unknownBranchesAreDenied() {
+        var owner = member(BusinessRole.OWNER, Set.of());
+
+        assertThat(evaluator.hasPermission(authenticated(owner), UUID.randomUUID(), "Branch", "BARBER"))
                 .isFalse();
     }
 
@@ -62,36 +95,41 @@ class BusinessPermissionEvaluatorTests {
     }
 
     @Test
-    void platformAdminsCanActOnAnyBusiness() {
+    void adminsGetInOnlyThroughJustifiedSupportAccess() {
         var admin = user(PlatformRole.ADMIN);
 
-        assertThat(evaluator.hasPermission(authenticated(admin), OTHER_BUSINESS, "Business", "OWNER"))
+        supportGranted = false;
+        assertThat(evaluator.hasPermission(authenticated(admin), BUSINESS, "Business", "OWNER"))
+                .isFalse();
+
+        supportGranted = true;
+        assertThat(evaluator.hasPermission(authenticated(admin), BUSINESS, "Business", "OWNER"))
                 .isTrue();
     }
 
     @Test
-    void anonymousOrForeignPrincipalsAreDenied() {
+    void anonymousOrForeignPrincipalsAndChecksWithoutIdAreDenied() {
         assertThat(evaluator.hasPermission(null, BUSINESS, "Business", "BARBER"))
                 .isFalse();
         assertThat(evaluator.hasPermission(
                         new TestingAuthenticationToken("alguien", null), BUSINESS, "Business", "BARBER"))
                 .isFalse();
-    }
-
-    @Test
-    void checksWithoutAResourceIdAreAlwaysDenied() {
-        var user = user(PlatformRole.ADMIN);
-
-        assertThat(evaluator.hasPermission(authenticated(user), new Object(), "OWNER"))
+        assertThat(evaluator.hasPermission(authenticated(user(PlatformRole.ADMIN)), new Object(), "OWNER"))
                 .isFalse();
     }
 
     @Test
     void unknownResourceTypesAreAProgrammingError() {
-        var user = user(PlatformRole.USER);
+        var owner = member(BusinessRole.OWNER, Set.of());
 
-        assertThatThrownBy(() -> evaluator.hasPermission(authenticated(user), BUSINESS, "Branch", "OWNER"))
+        assertThatThrownBy(() -> evaluator.hasPermission(authenticated(owner), BUSINESS, "Appointment", "OWNER"))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private AuthenticatedUser member(BusinessRole role, Set<UUID> branches) {
+        var user = user(PlatformRole.USER);
+        membershipsInBusiness.put(user.id(), new BusinessMembership(role, branches));
+        return user;
     }
 
     private static AuthenticatedUser user(PlatformRole role) {

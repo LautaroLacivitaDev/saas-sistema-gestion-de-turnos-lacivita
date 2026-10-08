@@ -3,18 +3,22 @@ package com.lacivita.turnos.users.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.lacivita.turnos.ApiClient;
 import com.lacivita.turnos.IntegrationTest;
 import com.lacivita.turnos.shared.domain.Email;
 import com.lacivita.turnos.shared.security.AuthenticatedUser;
 import com.lacivita.turnos.shared.security.BusinessRole;
 import com.lacivita.turnos.shared.security.PlatformRole;
-import com.lacivita.turnos.users.domain.Membership;
+import com.lacivita.turnos.shared.tenancy.BusinessId;
+import com.lacivita.turnos.shared.tenancy.BusinessScoped;
+import com.lacivita.turnos.shared.tenancy.TenantContext;
+import com.lacivita.turnos.users.domain.MembershipFixtures;
 import com.lacivita.turnos.users.domain.MembershipRepository;
-import com.lacivita.turnos.users.domain.NewPassword;
-import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -27,11 +31,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Permisos por negocio de punta a punta: membresías reales en PostgreSQL, {@code @PreAuthorize} y el
- * evaluador de permisos.
+ * Permisos de punta a punta: membresías reales en PostgreSQL, {@code @PreAuthorize}, el contexto del
+ * negocio y el evaluador de permisos, por negocio y por sucursal.
  */
 @IntegrationTest
 @Import(BusinessPermissionsIntegrationTests.ProbeConfiguration.class)
@@ -41,7 +46,7 @@ class BusinessPermissionsIntegrationTests {
     BusinessProbe probe;
 
     @Autowired
-    AccountRegistration registration;
+    MockMvcTester mvc;
 
     @Autowired
     MembershipRepository memberships;
@@ -49,7 +54,20 @@ class BusinessPermissionsIntegrationTests {
     @Autowired
     TransactionTemplate transaction;
 
-    final UUID business = UUID.randomUUID();
+    ApiClient api;
+    UUID business;
+    UUID centro;
+    UUID norte;
+
+    @BeforeEach
+    void businessWithTwoBranches() {
+        api = new ApiClient(mvc);
+        var owner = api.registerNewUser("Dueña");
+        business = api.createBusiness(
+                owner, "permisos-" + UUID.randomUUID().toString().substring(0, 8));
+        centro = api.createBranch(owner, business, "Centro");
+        norte = api.createBranch(owner, business, "Norte");
+    }
 
     @AfterEach
     void clearSecurityContext() {
@@ -57,32 +75,30 @@ class BusinessPermissionsIntegrationTests {
     }
 
     @ParameterizedTest
-    @EnumSource(BusinessRole.class)
-    void everyRoleCanDoWhatABarberCanDo(BusinessRole role) {
-        signInAs(memberWithRole(role));
+    @EnumSource(
+            value = BusinessRole.class,
+            names = {"MANAGER", "BARBER"})
+    void staffCanDoBarberActionsInTheirBusiness(BusinessRole role) {
+        signInAs(member(role, centro));
 
         assertThat(probe.barberAction(business)).isEqualTo("ok");
     }
 
     @Test
     void onlyManagersAndOwnersCanDoManagerActions() {
-        signInAs(memberWithRole(BusinessRole.BARBER));
+        signInAs(member(BusinessRole.BARBER, centro));
         assertThatThrownBy(() -> probe.managerAction(business)).isInstanceOf(AccessDeniedException.class);
 
-        signInAs(memberWithRole(BusinessRole.MANAGER));
-        assertThat(probe.managerAction(business)).isEqualTo("ok");
-
-        signInAs(memberWithRole(BusinessRole.OWNER));
+        signInAs(member(BusinessRole.MANAGER, centro));
         assertThat(probe.managerAction(business)).isEqualTo("ok");
     }
 
     @Test
-    void onlyTheOwnerCanDoOwnerActions() {
-        signInAs(memberWithRole(BusinessRole.MANAGER));
-        assertThatThrownBy(() -> probe.ownerAction(business)).isInstanceOf(AccessDeniedException.class);
+    void staffActsOnlyOnTheirAssignedBranches() {
+        signInAs(member(BusinessRole.MANAGER, centro));
 
-        signInAs(memberWithRole(BusinessRole.OWNER));
-        assertThat(probe.ownerAction(business)).isEqualTo("ok");
+        assertThat(probe.branchAction(centro)).isEqualTo("ok");
+        assertThatThrownBy(() -> probe.branchAction(norte)).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -90,47 +106,43 @@ class BusinessPermissionsIntegrationTests {
         signInAs(newUser(PlatformRole.USER));
 
         assertThatThrownBy(() -> probe.barberAction(business)).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> probe.branchAction(centro)).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
     void anOwnerOfAnotherBusinessCannotActOnThisOne() {
-        var ownerElsewhere = newUser(PlatformRole.USER);
-        grant(ownerElsewhere, UUID.randomUUID(), BusinessRole.OWNER);
-        signInAs(ownerElsewhere);
+        var otherOwner = api.registerNewUser("Otra dueña");
+        api.createBusiness(otherOwner, "otro-" + UUID.randomUUID().toString().substring(0, 8));
+        signInAs(principal(otherOwner, PlatformRole.USER));
 
         assertThatThrownBy(() -> probe.barberAction(business)).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> probe.branchAction(norte)).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
-    void platformAdminsCanActOnAnyBusiness() {
-        signInAs(newUser(PlatformRole.ADMIN));
-
-        assertThat(probe.ownerAction(business)).isEqualTo("ok");
-    }
-
-    @Test
-    void platformAdminsInheritUserPermissions() {
+    void platformAdminsInheritUserPermissionsButNeedAReasonForBusinesses() {
         signInAs(newUser(PlatformRole.ADMIN));
 
         assertThat(probe.userAction()).isEqualTo("ok");
+        // Fuera de una solicitud HTTP no hay motivo de soporte: el acceso al negocio se niega.
+        assertThatThrownBy(() -> probe.barberAction(business)).isInstanceOf(AccessDeniedException.class);
     }
 
-    private AuthenticatedUser memberWithRole(BusinessRole role) {
+    private AuthenticatedUser member(BusinessRole role, UUID branch) {
         var user = newUser(PlatformRole.USER);
-        grant(user, business, role);
+        TenantContext.callInBusiness(
+                business,
+                () -> transaction.execute(status ->
+                        memberships.save(MembershipFixtures.staff(user.id(), business, role, Set.of(branch)))));
         return user;
     }
 
     private AuthenticatedUser newUser(PlatformRole role) {
-        var email = "permisos-" + UUID.randomUUID() + "@example.com";
-        var account = registration.register("Persona", new Email(email), new NewPassword("clave-segura-1"));
-        var principal = account.principal();
-        return new AuthenticatedUser(principal.id(), principal.email(), principal.name(), role);
+        return principal(api.registerNewUser("Persona"), role);
     }
 
-    private void grant(AuthenticatedUser user, UUID businessId, BusinessRole role) {
-        transaction.executeWithoutResult(
-                status -> memberships.save(Membership.grant(user.id(), businessId, role, Instant.now())));
+    private static AuthenticatedUser principal(ApiClient.Session session, PlatformRole role) {
+        return new AuthenticatedUser(session.userId(), new Email(session.email()), "Persona", role);
     }
 
     private static void signInAs(AuthenticatedUser user) {
@@ -139,21 +151,23 @@ class BusinessPermissionsIntegrationTests {
                 .setAuthentication(UsernamePasswordAuthenticationToken.authenticated(user, null, List.of(authority)));
     }
 
-    /** Servicio de prueba con las tres exigencias de rol, como las usarán los módulos de negocio. */
+    /** Servicio de prueba con las exigencias de permisos que usan los módulos. */
     static class BusinessProbe {
 
+        @BusinessScoped
         @PreAuthorize("hasPermission(#businessId, 'Business', 'BARBER')")
-        public String barberAction(UUID businessId) {
+        public String barberAction(@BusinessId UUID businessId) {
             return "ok";
         }
 
+        @BusinessScoped
         @PreAuthorize("hasPermission(#businessId, 'Business', 'MANAGER')")
-        public String managerAction(UUID businessId) {
+        public String managerAction(@BusinessId UUID businessId) {
             return "ok";
         }
 
-        @PreAuthorize("hasPermission(#businessId, 'Business', 'OWNER')")
-        public String ownerAction(UUID businessId) {
+        @PreAuthorize("hasPermission(#branchId, 'Branch', 'BARBER')")
+        public String branchAction(UUID branchId) {
             return "ok";
         }
 

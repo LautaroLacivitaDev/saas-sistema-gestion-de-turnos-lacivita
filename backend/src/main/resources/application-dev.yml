@@ -1,8 +1,13 @@
 # Desarrollo local. Requiere `docker compose up -d` en la raíz del repositorio.
 spring:
+  # La aplicación entra con un usuario sin privilegios para que PostgreSQL le aplique Row Level
+  # Security. Las migraciones corren con el dueño de las tablas.
   datasource:
     url: jdbc:postgresql://localhost:5433/turnos
-    username: turnos
+    username: turnos_app
+    password: turnos_app
+  flyway:
+    user: turnos
     password: turnos
   mail:
     host: localhost
