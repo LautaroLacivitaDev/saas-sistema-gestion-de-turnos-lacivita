@@ -4,17 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 /** Arranca la aplicación completa contra PostgreSQL real y verifica la base del proyecto. */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@IntegrationTest
 class ApplicationIntegrationTests {
 
     @Autowired
@@ -32,7 +27,7 @@ class ApplicationIntegrationTests {
     }
 
     @Test
-    void healthEndpointIsUp() {
+    void healthEndpointIsPublicAndUp() {
         assertThat(mvc.get().uri("/actuator/health"))
                 .hasStatusOk()
                 .bodyJson()
@@ -46,9 +41,17 @@ class ApplicationIntegrationTests {
     }
 
     @Test
-    void unknownRouteReturnsProblemDetails() {
-        assertThat(mvc.get().uri("/api/no-existe"))
-                .hasStatus(HttpStatus.NOT_FOUND)
-                .hasContentType("application/problem+json");
+    void protectedRoutesRequireASessionAndAnswerWithProblemDetails() {
+        assertThat(mvc.get().uri("/api/cualquier-cosa"))
+                .hasStatus(HttpStatus.UNAUTHORIZED)
+                .hasContentType("application/problem+json")
+                .bodyJson()
+                .extractingPath("$.code")
+                .isEqualTo("authentication_required");
+    }
+
+    @Test
+    void routesOutsideTheApiAreRejected() {
+        assertThat(mvc.get().uri("/no-es-de-la-api")).hasStatus(HttpStatus.UNAUTHORIZED);
     }
 }

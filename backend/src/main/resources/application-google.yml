@@ -1,0 +1,17 @@
+# Login con Google. Se activa sumando el perfil "google" (por ejemplo SPRING_PROFILES_ACTIVE=dev,google)
+# y definiendo GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET (credenciales OAuth de Google Cloud Console).
+#
+# En Google Cloud Console, el URI de redirección autorizado es:
+#   <frontend-url>/api/auth/oauth2/code/google   (en desarrollo: http://localhost:3000/api/auth/oauth2/code/google)
+# Pasa por el frontend para que la cookie de sesión quede en el mismo dominio que la aplicación.
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            # Solo nombre, email y foto: no se pide acceso a Gmail, Drive ni Calendar.
+            scope: openid, profile, email
+            redirect-uri: "${app.frontend-url}/api/auth/oauth2/code/{registrationId}"

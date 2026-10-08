@@ -24,11 +24,24 @@ spring:
       enabled: true
   jackson:
     time-zone: UTC
+  session:
+    # Sesiones en PostgreSQL (tablas creadas por Flyway en V4).
+    jdbc:
+      initialize-schema: never
+    timeout: 14d
 
 server:
   error:
     include-stacktrace: never
     include-message: never
+
+app:
+  frontend-url: http://localhost:3000
+  mail:
+    from: no-responder@turnos.local
+    from-name: Turnos
+  rate-limit:
+    auth-requests-per-minute: 10
 
 management:
   endpoints:
@@ -39,6 +52,11 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    mail:
+      # DECISIÓN: si el proveedor de email se cae, la API sigue atendiendo turnos. Los emails se
+      # reintentan aparte; no deben marcar la aplicación como caída.
+      enabled: false
 
 springdoc:
   api-docs:

@@ -1,0 +1,10 @@
+# Perfil de las pruebas de integración. La base la provee Testcontainers.
+spring:
+  mail:
+    # No se usa: las pruebas reemplazan el Mailer por RecordingMailer. Hace falta para crear el bean.
+    host: localhost
+
+app:
+  rate-limit:
+    # Alto para que las pruebas no se frenen entre sí. El límite se prueba aparte.
+    auth-requests-per-minute: 10000
