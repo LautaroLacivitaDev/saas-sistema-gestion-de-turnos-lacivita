@@ -1,7 +1,7 @@
 package com.lacivita.turnos.users.web;
 
+import static com.lacivita.turnos.SpaCsrf.spaCsrf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import com.lacivita.turnos.IntegrationTest;
 import com.lacivita.turnos.RecordingMailer;
@@ -126,7 +126,7 @@ class AuthApiIntegrationTests {
             var logout = mvc.post()
                     .uri("/api/auth/logout")
                     .cookie(session)
-                    .with(csrf())
+                    .with(spaCsrf())
                     .exchange();
 
             assertThat(logout).hasStatus(HttpStatus.NO_CONTENT);
@@ -143,7 +143,7 @@ class AuthApiIntegrationTests {
                     .cookie(registrationSession)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(loginJson(email, PASSWORD))
-                    .with(csrf())
+                    .with(spaCsrf())
                     .exchange();
 
             assertThat(sessionOf(result).getValue()).isNotEqualTo(registrationSession.getValue());
@@ -191,7 +191,7 @@ class AuthApiIntegrationTests {
             var result = mvc.post()
                     .uri("/api/auth/email-verification/resend")
                     .cookie(session)
-                    .with(csrf())
+                    .with(spaCsrf())
                     .exchange();
 
             assertThat(result).hasStatus(HttpStatus.ACCEPTED);
@@ -256,7 +256,7 @@ class AuthApiIntegrationTests {
                 .uri("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(registerJson(name, email, password))
-                .with(csrf())
+                .with(spaCsrf())
                 .exchange();
     }
 
@@ -265,7 +265,7 @@ class AuthApiIntegrationTests {
                 .uri("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(loginJson(email, password))
-                .with(csrf())
+                .with(spaCsrf())
                 .exchange();
     }
 
@@ -274,7 +274,7 @@ class AuthApiIntegrationTests {
                 .uri("/api/auth/login-link")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"%s\"}".formatted(email))
-                .with(csrf())
+                .with(spaCsrf())
                 .exchange();
     }
 
@@ -283,7 +283,7 @@ class AuthApiIntegrationTests {
                 .uri(uri)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"token\":\"%s\"}".formatted(token))
-                .with(csrf())
+                .with(spaCsrf())
                 .exchange();
     }
 

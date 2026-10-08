@@ -1,7 +1,7 @@
 package com.lacivita.turnos.users.web;
 
+import static com.lacivita.turnos.SpaCsrf.spaCsrf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import com.lacivita.turnos.IntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -52,7 +52,7 @@ class AuthRateLimitIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"email":"nadie@example.com","password":"lo-que-sea"}""")
-                .with(csrf())
+                .with(spaCsrf())
                 .exchange();
     }
 }
