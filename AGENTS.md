@@ -34,11 +34,14 @@ Trabajá como un **desarrollador senior** en un proyecto que tiene que **escalar
   ```
   booking/
   ├── BookingApi.java, AppointmentBooked.java, ...   # API pública y eventos
-  ├── domain/          # Entidades, objetos de valor, reglas, interfaces de repositorio
+  ├── domain/          # Entidades, objetos de valor, reglas, repositorios (Spring Data) y puertos
   ├── application/     # Casos de uso (orquestación, transacciones, permisos)
-  ├── persistence/     # Repositorios JPA y consultas nativas
-  └── web/             # Controladores REST y DTOs de entrada y salida
+  ├── infrastructure/  # Implementaciones de puertos del dominio (cifrado, consultas nativas, clientes externos)
+  └── web/             # Controladores REST, DTOs de entrada y salida, endpoints públicos del módulo
   ```
+
+- **Dependencias entre capas** (las verifica `ArchitectureTests`): `web → application → domain ← infrastructure`. El dominio no depende de ninguna otra capa ni de HTTP; nadie referencia la infraestructura directamente, se inyecta por la interfaz del dominio; la web nunca expone entidades.
+- **Endpoints públicos:** un módulo que tenga endpoints sin sesión los declara con un bean `PublicEndpoints` (y marca cuáles llevan límite de intentos). La seguridad común no conoce las rutas de los módulos.
 
 - Nunca exponer entidades JPA fuera del módulo ni en la API REST: se mapean a DTOs (MapStruct).
 - Entre módulos: llamadas a la API pública para consultas y **eventos** para efectos secundarios (avisar, auditar), así un módulo no depende de quién reacciona.
@@ -156,6 +159,7 @@ Reglas:
 1. Un hito está terminado cuando: compila, pasan todas las pruebas (backend y frontend), no hay violaciones de límites entre módulos, los permisos están probados por rol, las migraciones son reproducibles y la documentación está actualizada.
 2. Al cerrar un hito: resumir qué quedó hecho, cómo probarlo y qué decisiones se tomaron, y actualizar [MEMORY.md](MEMORY.md), el estado en [docs/plan-mvp.md](docs/plan-mvp.md), [docs/decisiones.md](docs/decisiones.md) y la tabla de comandos de este archivo.
 3. No cambiar el stack sin consultar.
+4. Al terminar, resume qué has cambiado y cualquier decisión que deba revisar.
 
 ## Memoria
 - Al empezar, lee `MEMORY.md` para conocer el estado del proyecto y las decisiones
