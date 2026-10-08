@@ -13,7 +13,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,7 +39,8 @@ public class User {
 
     private Email email;
 
-    private String phone;
+    // El teléfono (columna phone) se incorpora con su objeto de valor cuando se pida en la primera
+    // reserva (Hito 6). No se mapea antes para no tener un atributo que nada escribe ni lee.
 
     private String passwordHash;
 
@@ -73,9 +73,10 @@ public class User {
     }
 
     /** Alta con email y contraseña. El email queda sin verificar hasta que la persona use el link. */
-    public static User registerWithPassword(String name, Email email, String passwordHash, Instant now) {
+    public static User registerWithPassword(
+            String name, Email email, NewPassword password, PasswordHasher hasher, Instant now) {
         var user = new User(name, email, now);
-        user.passwordHash = requirePasswordHash(passwordHash);
+        user.passwordHash = hasher.hash(password);
         return user;
     }
 
@@ -127,6 +128,18 @@ public class User {
         }
     }
 
+    /**
+     * Compara la contraseña ingresada con la de la cuenta. Sin contraseña devuelve {@code false}, pero
+     * igual gasta el tiempo de una comparación para no revelar que la cuenta no tiene contraseña.
+     */
+    public boolean passwordMatches(String rawPassword, PasswordHasher hasher) {
+        if (passwordHash == null) {
+            hasher.simulateMatch(rawPassword);
+            return false;
+        }
+        return hasher.matches(rawPassword, passwordHash);
+    }
+
     public boolean hasPassword() {
         return passwordHash != null;
     }
@@ -135,18 +148,10 @@ public class User {
         return emailVerifiedAt != null;
     }
 
-    public Optional<String> passwordHash() {
-        return Optional.ofNullable(passwordHash);
-    }
-
     public Optional<UserIdentity> identityFor(IdentityProvider provider) {
         return identities.stream()
-                .filter(identity -> identity.provider() == provider)
+                .filter(identity -> identity.getProvider() == provider)
                 .findFirst();
-    }
-
-    public Set<UserIdentity> getIdentities() {
-        return Collections.unmodifiableSet(identities);
     }
 
     public UUID getId() {
@@ -161,16 +166,8 @@ public class User {
         return email;
     }
 
-    public Optional<String> getPhone() {
-        return Optional.ofNullable(phone);
-    }
-
     public PlatformRole getPlatformRole() {
         return platformRole;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     private void touch(Instant now) {
@@ -187,13 +184,6 @@ public class User {
                     "invalid_name", "El nombre puede tener hasta " + MAX_NAME_LENGTH + " caracteres.");
         }
         return trimmed;
-    }
-
-    private static String requirePasswordHash(String passwordHash) {
-        if (passwordHash == null || passwordHash.isBlank()) {
-            throw new IllegalArgumentException("El hash de la contraseña es obligatorio");
-        }
-        return passwordHash;
     }
 
     @Override

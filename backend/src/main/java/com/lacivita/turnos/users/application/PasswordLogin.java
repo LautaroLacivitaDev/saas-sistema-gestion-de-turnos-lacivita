@@ -1,10 +1,9 @@
 package com.lacivita.turnos.users.application;
 
 import com.lacivita.turnos.shared.domain.Email;
-import com.lacivita.turnos.users.domain.User;
+import com.lacivita.turnos.users.domain.PasswordHasher;
 import com.lacivita.turnos.users.domain.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,29 +12,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class PasswordLogin {
 
     private final UserRepository users;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordHasher passwordHasher;
     private final AccountMapper mapper;
 
-    /**
-     * Hash contra el que se compara cuando el email no existe o la cuenta no tiene contraseña. Así la
-     * respuesta tarda lo mismo en todos los casos y el tiempo no revela qué emails están registrados.
-     */
-    private final String timingDecoyHash;
-
-    PasswordLogin(UserRepository users, PasswordEncoder passwordEncoder, AccountMapper mapper) {
+    PasswordLogin(UserRepository users, PasswordHasher passwordHasher, AccountMapper mapper) {
         this.users = users;
-        this.passwordEncoder = passwordEncoder;
+        this.passwordHasher = passwordHasher;
         this.mapper = mapper;
-        this.timingDecoyHash = passwordEncoder.encode("decoy-password-for-timing");
     }
 
-    /** @throws BadCredentialsException si el email o la contraseña no coinciden, sin decir cuál de los dos */
+    /**
+     * Todos los rechazos (email inexistente, cuenta sin contraseña o contraseña incorrecta) responden
+     * igual y tardan lo mismo, para no revelar qué emails están registrados.
+     *
+     * @throws BadCredentialsException si el email o la contraseña no coinciden
+     */
     @Transactional(readOnly = true)
     public SignIn authenticate(Email email, String rawPassword) {
         var user = users.findByEmail(email);
-        String hash = user.flatMap(User::passwordHash).orElse(timingDecoyHash);
-        boolean matches = passwordEncoder.matches(rawPassword, hash);
-        if (!matches || user.isEmpty() || !user.get().hasPassword()) {
+        if (user.isEmpty()) {
+            passwordHasher.simulateMatch(rawPassword);
+            throw new BadCredentialsException("Credenciales inválidas");
+        }
+        if (!user.get().passwordMatches(rawPassword, passwordHasher)) {
             throw new BadCredentialsException("Credenciales inválidas");
         }
         return mapper.toSignIn(user.get());

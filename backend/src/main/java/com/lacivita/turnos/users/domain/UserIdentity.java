@@ -47,7 +47,7 @@ public class UserIdentity {
         this.linkedAt = now;
     }
 
-    public IdentityProvider provider() {
+    public IdentityProvider getProvider() {
         return provider;
     }
 

@@ -1,11 +1,11 @@
 package com.lacivita.turnos.users.application;
 
 import com.lacivita.turnos.users.domain.UserRepository;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Consultas sobre la cuenta propia. */
 @Service
 public class AccountQueries {
 
@@ -17,8 +17,9 @@ public class AccountQueries {
         this.mapper = mapper;
     }
 
+    /** Cuenta de una persona con sesión iniciada. */
     @Transactional(readOnly = true)
-    public Optional<AccountView> find(UUID userId) {
-        return users.findById(userId).map(mapper::toView);
+    public AccountView ofSignedInUser(UUID userId) {
+        return mapper.toView(users.require(userId));
     }
 }

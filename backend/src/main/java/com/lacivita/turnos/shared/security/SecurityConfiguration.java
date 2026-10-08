@@ -1,11 +1,11 @@
 package com.lacivita.turnos.shared.security;
 
 import com.lacivita.turnos.shared.config.AppProperties;
+import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
@@ -44,43 +44,51 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @EnableMethodSecurity
 class SecurityConfiguration {
 
+    /** Cierre de sesión. Lo resuelve Spring Security; no tiene controlador propio. */
+    static final String LOGOUT_PATH = "/api/auth/logout";
+
     @Bean
     SecurityFilterChain apiSecurity(
             HttpSecurity http,
             SecurityContextRepository contextRepository,
+            ObjectProvider<PublicEndpoints> publicEndpointProviders,
             ObjectProvider<ClientRegistrationRepository> oauthClients,
             ObjectProvider<OidcLoginHandler> oidcLoginHandler,
             AppProperties properties,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
 
         var problems = new SecurityProblemHandler(exceptionResolver);
+        List<PublicEndpoint> publicEndpoints = publicEndpointProviders
+                .orderedStream()
+                .flatMap(provider -> provider.publicEndpoints().stream())
+                .toList();
 
         http.csrf(csrf -> csrf.spa())
                 .securityContext(context -> context.securityContextRepository(contextRepository))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                .logout(logout -> logout.logoutUrl("/api/auth/logout")
+                .logout(logout -> logout.logoutUrl(LOGOUT_PATH)
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
                 .exceptionHandling(
                         errors -> errors.authenticationEntryPoint(problems).accessDeniedHandler(problems))
                 .addFilterBefore(
-                        new AuthRateLimitFilter(properties.rateLimit().authRequestsPerMinute(), exceptionResolver),
+                        new PublicEndpointRateLimitFilter(
+                                publicEndpoints, properties.rateLimit().requestsPerMinute(), exceptionResolver),
                         CsrfFilter.class)
-                .authorizeHttpRequests(requests -> requests.requestMatchers(
-                                HttpMethod.POST, AuthRateLimitFilter.LIMITED_PATHS.toArray(String[]::new))
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/auth/csrf")
-                        .permitAll()
-                        .requestMatchers("/api/docs/**", "/api/openapi/**", "/swagger-ui/**")
-                        .permitAll()
-                        .requestMatchers("/actuator/health/**", "/actuator/info", "/error")
-                        .permitAll()
-                        .requestMatchers("/actuator/**")
-                        .hasRole(PlatformRole.ADMIN.name())
-                        .requestMatchers("/api/**")
-                        .authenticated()
-                        .anyRequest()
-                        .denyAll());
+                .authorizeHttpRequests(requests -> {
+                    publicEndpoints.forEach(endpoint -> requests.requestMatchers(endpoint.method(), endpoint.path())
+                            .permitAll());
+                    requests.requestMatchers("/api/docs/**", "/api/openapi/**", "/swagger-ui/**")
+                            .permitAll()
+                            .requestMatchers("/actuator/health/**", "/actuator/info", "/error")
+                            .permitAll()
+                            .requestMatchers("/actuator/**")
+                            .hasRole(PlatformRole.ADMIN.name())
+                            .requestMatchers("/api/**")
+                            .authenticated()
+                            .anyRequest()
+                            .denyAll();
+                });
 
         // El login con Google se activa solo si están configuradas las credenciales (perfil "google").
         if (oauthClients.getIfAvailable() != null) {

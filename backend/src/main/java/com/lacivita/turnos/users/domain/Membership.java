@@ -49,7 +49,7 @@ public class Membership {
         return new Membership(userId, businessId, role, now);
     }
 
-    public BusinessRole role() {
+    public BusinessRole getRole() {
         return role;
     }
 }

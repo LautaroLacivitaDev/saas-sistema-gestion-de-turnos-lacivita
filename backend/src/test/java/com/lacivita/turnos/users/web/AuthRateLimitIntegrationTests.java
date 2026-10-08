@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 @IntegrationTest
-@TestPropertySource(properties = "app.rate-limit.auth-requests-per-minute=3")
+@TestPropertySource(properties = "app.rate-limit.requests-per-minute=3")
 class AuthRateLimitIntegrationTests {
 
     @Autowired

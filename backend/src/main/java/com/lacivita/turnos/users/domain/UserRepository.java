@@ -19,6 +19,14 @@ public interface UserRepository extends Repository<User, UUID> {
 
     Optional<User> findById(UUID id);
 
+    /**
+     * Para ids que vienen de una sesión o de un token válidos. Si la cuenta no existe es una
+     * inconsistencia del sistema, no un error del usuario.
+     */
+    default User require(UUID id) {
+        return findById(id).orElseThrow(() -> new IllegalStateException("No existe la cuenta " + id));
+    }
+
     Optional<User> findByEmail(Email email);
 
     boolean existsByEmail(Email email);

@@ -16,7 +16,7 @@ import org.springframework.validation.annotation.Validated;
  * @param frontendUrl dirección pública del frontend, para armar los links de los emails y las
  *     redirecciones del login con Google
  * @param mail remitente de los emails
- * @param rateLimit límite de intentos en los endpoints públicos de autenticación
+ * @param rateLimit límite de intentos en los endpoints públicos que lo piden
  */
 @Validated
 @ConfigurationProperties(prefix = "app")
@@ -34,6 +34,6 @@ public record AppProperties(
     public record Mail(
             @NotBlank @Email String from, @NotBlank String fromName) {}
 
-    /** @param authRequestsPerMinute intentos por minuto y por IP en registro, login y links de acceso */
-    public record RateLimit(@Positive int authRequestsPerMinute) {}
+    /** @param requestsPerMinute intentos por minuto y por IP en cada endpoint público limitado */
+    public record RateLimit(@Positive int requestsPerMinute) {}
 }

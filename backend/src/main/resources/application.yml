@@ -41,7 +41,7 @@ app:
     from: no-responder@turnos.local
     from-name: Turnos
   rate-limit:
-    auth-requests-per-minute: 10
+    requests-per-minute: 10
 
 management:
   endpoints:

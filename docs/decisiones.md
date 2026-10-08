@@ -69,3 +69,15 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | Repositorios: interfaces de Spring Data en el dominio que extienden `Repository` con solo los métodos necesarios | Evita una capa de adaptadores que solo delegaría |
 | Ids UUID v7 generados por la entidad | Inserción ordenada en índices y entidades válidas desde que se crean |
 | Health de mail desactivado | Una caída del proveedor de email no debe marcar la API como caída |
+
+## Revisión de código del Hito 2 (2026-10-08)
+
+| Decisión | Por qué |
+|---|---|
+| Capas por módulo: `web → application → domain ← infrastructure`, verificadas con ArchUnit | El orden de capas queda garantizado por el build, no solo por convención |
+| Puerto `PasswordHasher` en el dominio; `User` verifica su propia contraseña y no expone el hash | Encapsulamiento: la regla vive en la entidad y el algoritmo es un detalle de infraestructura |
+| Los módulos declaran sus endpoints públicos con `PublicEndpoints` | `shared` no conoce las rutas de los módulos; sumar un endpoint público no toca la seguridad común |
+| La capa web responde con sus propios DTOs (`AuthResponses`) | El contrato HTTP no queda atado a los modelos de la aplicación |
+| `UserRepository.require(id)` para ids que vienen de una sesión o de un token | Una sola forma de tratar la inconsistencia, sin repetir el `orElseThrow` |
+| El registro solo traduce a "email ya registrado" la violación de `user_account_email_uk` | Otras violaciones de integridad no se disfrazan de un error de negocio |
+| Se quitaron getters sin uso y el atributo `phone` sin escritura; getters con el mismo estilo en todas las entidades | Sin código muerto; consistencia |

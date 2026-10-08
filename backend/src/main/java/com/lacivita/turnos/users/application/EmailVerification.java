@@ -1,7 +1,6 @@
 package com.lacivita.turnos.users.application;
 
 import com.lacivita.turnos.users.domain.TokenPurpose;
-import com.lacivita.turnos.users.domain.User;
 import com.lacivita.turnos.users.domain.UserRepository;
 import java.time.Clock;
 import java.util.UUID;
@@ -27,19 +26,15 @@ public class EmailVerification {
     @Transactional
     public void verify(String rawToken) {
         UUID userId = tokens.consume(rawToken, TokenPurpose.EMAIL_VERIFICATION);
-        user(userId).verifyEmail(clock.instant());
+        users.require(userId).verifyEmail(clock.instant());
     }
 
     /** Envía un link nuevo. Si el email ya está verificado, no hace nada. */
     @Transactional
     public void resend(UUID userId) {
-        var user = user(userId);
+        var user = users.require(userId);
         if (!user.isEmailVerified()) {
             emails.sendEmailVerification(user, tokens.issue(userId, TokenPurpose.EMAIL_VERIFICATION));
         }
-    }
-
-    private User user(UUID userId) {
-        return users.findById(userId).orElseThrow(() -> new IllegalStateException("Usuario inexistente: " + userId));
     }
 }

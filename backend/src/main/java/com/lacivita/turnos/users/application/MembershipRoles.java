@@ -22,6 +22,6 @@ class MembershipRoles implements BusinessRoleResolver {
     @Override
     @Transactional(readOnly = true)
     public Optional<BusinessRole> roleOf(UUID userId, UUID businessId) {
-        return memberships.findByUserIdAndBusinessId(userId, businessId).map(Membership::role);
+        return memberships.findByUserIdAndBusinessId(userId, businessId).map(Membership::getRole);
     }
 }

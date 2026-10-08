@@ -38,9 +38,7 @@ public class LoginLinks {
     /** Usar el link demuestra que la persona controla el email, así que también lo verifica. */
     @Transactional
     public SignIn consume(String rawToken) {
-        var userId = tokens.consume(rawToken, TokenPurpose.LOGIN_LINK);
-        var user =
-                users.findById(userId).orElseThrow(() -> new IllegalStateException("Usuario inexistente: " + userId));
+        var user = users.require(tokens.consume(rawToken, TokenPurpose.LOGIN_LINK));
         user.verifyEmail(clock.instant());
         return mapper.toSignIn(user);
     }

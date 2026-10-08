@@ -13,16 +13,35 @@ class UserTests {
 
     static final Instant NOW = Instant.parse("2026-10-08T12:00:00Z");
     static final Email EMAIL = new Email("ana@example.com");
+    static final NewPassword PASSWORD = new NewPassword("clave-segura-1");
+
+    final FakePasswordHasher hasher = new FakePasswordHasher();
 
     @Test
     void registeringWithPasswordCreatesAnUnverifiedCustomerAccount() {
-        var user = User.registerWithPassword("  Ana  ", EMAIL, "{bcrypt}hash", NOW);
+        var user = User.registerWithPassword("  Ana  ", EMAIL, PASSWORD, hasher, NOW);
 
         assertThat(user.getId()).isNotNull();
         assertThat(user.getName()).isEqualTo("Ana");
         assertThat(user.hasPassword()).isTrue();
         assertThat(user.isEmailVerified()).isFalse();
         assertThat(user.getPlatformRole()).isEqualTo(PlatformRole.USER);
+    }
+
+    @Test
+    void theRightPasswordMatchesAndAWrongOneDoesNot() {
+        var user = User.registerWithPassword("Ana", EMAIL, PASSWORD, hasher, NOW);
+
+        assertThat(user.passwordMatches("clave-segura-1", hasher)).isTrue();
+        assertThat(user.passwordMatches("otra-clave", hasher)).isFalse();
+    }
+
+    @Test
+    void anAccountWithoutPasswordNeverMatchesButStillSpendsTheComparisonTime() {
+        var user = User.registerWithExternalIdentity("Ana", EMAIL, IdentityProvider.GOOGLE, "google-123", NOW);
+
+        assertThat(user.passwordMatches("cualquier-cosa", hasher)).isFalse();
+        assertThat(hasher.simulatedMatches()).isEqualTo(1);
     }
 
     @Test
@@ -36,13 +55,13 @@ class UserTests {
 
     @Test
     void aNameIsRequired() {
-        assertThatThrownBy(() -> User.registerWithPassword(" ", EMAIL, "{bcrypt}hash", NOW))
+        assertThatThrownBy(() -> User.registerWithPassword(" ", EMAIL, PASSWORD, hasher, NOW))
                 .isInstanceOf(InvalidValueException.class);
     }
 
     @Test
     void verifyingTwiceKeepsTheAccountVerified() {
-        var user = User.registerWithPassword("Ana", EMAIL, "{bcrypt}hash", NOW);
+        var user = User.registerWithPassword("Ana", EMAIL, PASSWORD, hasher, NOW);
 
         user.verifyEmail(NOW);
         user.verifyEmail(NOW.plusSeconds(60));
@@ -56,7 +75,7 @@ class UserTests {
 
         user.linkIdentity(IdentityProvider.GOOGLE, "google-123", NOW);
 
-        assertThat(user.getIdentities()).hasSize(1);
+        assertThat(user.identityFor(IdentityProvider.GOOGLE)).isPresent();
     }
 
     @Test
@@ -68,19 +87,12 @@ class UserTests {
     }
 
     @Test
-    void identitiesCannotBeModifiedFromOutside() {
-        var user = User.registerWithExternalIdentity("Ana", EMAIL, IdentityProvider.GOOGLE, "google-123", NOW);
-
-        assertThatThrownBy(() -> user.getIdentities().clear()).isInstanceOf(UnsupportedOperationException.class);
-    }
-
-    @Test
-    void discardingThePasswordLeavesTheAccountWithoutOne() {
-        var user = User.registerWithPassword("Ana", EMAIL, "{bcrypt}hash", NOW);
+    void aDiscardedPasswordNoLongerWorks() {
+        var user = User.registerWithPassword("Ana", EMAIL, PASSWORD, hasher, NOW);
 
         user.discardPassword(NOW);
 
         assertThat(user.hasPassword()).isFalse();
-        assertThat(user.passwordHash()).isEmpty();
+        assertThat(user.passwordMatches("clave-segura-1", hasher)).isFalse();
     }
 }

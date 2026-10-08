@@ -7,4 +7,4 @@ spring:
 app:
   rate-limit:
     # Alto para que las pruebas no se frenen entre sí. El límite se prueba aparte.
-    auth-requests-per-minute: 10000
+    requests-per-minute: 10000
