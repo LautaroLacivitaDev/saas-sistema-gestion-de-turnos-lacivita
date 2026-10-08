@@ -26,16 +26,24 @@ Plataforma SaaS de gestión de turnos para barberías, centros de estética y ne
 
 ## Comandos
 
-> Se completan en el Hito 1. Documentar siempre la variante de Windows (`mvnw.cmd`) y la de Unix (`./mvnw`).
+Documentar siempre la variante de Windows (`mvnw.cmd`) y la de Unix (`./mvnw`). Los comandos del backend se corren desde `backend/` y los del frontend desde `frontend/`.
 
 | Tarea | Windows | Unix |
 |---|---|---|
-| Levantar PostgreSQL y Mailpit | `docker compose up -d` | `docker compose up -d` |
-| Compilar y probar el backend | _pendiente_ | _pendiente_ |
-| Ejecutar el backend (perfil dev) | _pendiente_ | _pendiente_ |
-| Formatear el código | _pendiente_ | _pendiente_ |
-| Frontend en desarrollo | _pendiente_ | _pendiente_ |
-| Pruebas del frontend | _pendiente_ | _pendiente_ |
+| Levantar PostgreSQL (puerto 5433) y Mailpit | `docker compose up -d` | `docker compose up -d` |
+| Compilar, chequear formato y correr todas las pruebas del backend | `mvnw.cmd verify` | `./mvnw verify` |
+| Ejecutar el backend (perfil `dev` por defecto) | `mvnw.cmd spring-boot:run` | `./mvnw spring-boot:run` |
+| Formatear el backend | `mvnw.cmd spotless:apply` | `./mvnw spotless:apply` |
+| Frontend en desarrollo | `npm run dev` | `npm run dev` |
+| Lint, tipos, pruebas y build del frontend | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` | igual |
+
+Direcciones en desarrollo: API en http://localhost:8080/api, Swagger UI en http://localhost:8080/api/docs, frontend en http://localhost:3000, Mailpit en http://localhost:8025.
+
+Antes de dar por terminado un cambio: `verify` en el backend y lint, typecheck, test y build en el frontend tienen que pasar.
+
+**Migraciones:** nunca modificar un archivo de `db/migration` ya commiteado, ni siquiera un comentario. Flyway valida el checksum y el arranque falla. Cualquier cambio va en una migración nueva.
+
+**Frontend:** Next.js 16 tiene cambios incompatibles con versiones anteriores. Antes de escribir código de Next, leé [frontend/AGENTS.md](frontend/AGENTS.md) y la guía correspondiente en `frontend/node_modules/next/dist/docs/`.
 
 ## Entorno
 
