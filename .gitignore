@@ -1,0 +1,27 @@
+# IntelliJ (las configuraciones compartidas van en .run/)
+.idea/
+*.iml
+
+# VS Code (solo se versionan las recomendaciones)
+**/.vscode/*
+!**/.vscode/extensions.json
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Backend
+backend/target/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Claude Code (configuración local)
+.claude/settings.local.json
