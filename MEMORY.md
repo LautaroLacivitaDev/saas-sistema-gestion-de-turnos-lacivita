@@ -5,7 +5,7 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - Hito 1 (base del proyecto) terminado el 2026-10-08: backend `verify` con 9 pruebas OK y
   frontend con lint, tipos, pruebas y build OK. Probado de punta a punta.
 - Próximo: Hito 2, usuarios y autenticación.
-- `main` publicado en GitHub con CI (backend y frontend) en cada push.
+- `main` publicado en GitHub. CI (backend y frontend) en verde desde el commit 7a4c28f.
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
 ## Decisiones (y por qué)
 - Roles en dos niveles: Spring Security solo `ADMIN`/usuario; `OWNER`/`MANAGER`/`BARBER`
@@ -29,7 +29,6 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - En Windows, git no marca `mvnw` como ejecutable: `git update-index --chmod=+x`.
 - Docker Desktop necesita WSL 2 y un reinicio real ("Apagar" no aplica los cambios).
 ## Próximos pasos
-- Confirmar que el CI quede en verde tras el arreglo del typecheck.
 - Lautaro: instalar el plugin palantir-java-format en IntelliJ y crear las credenciales
   OAuth de Google para el login.
 - Arrancar el Hito 2.
