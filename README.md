@@ -1,4 +1,4 @@
-# Turnos: gestión de turnos para barberías y estéticas
+# Laciturnos: gestión de turnos para barberías y estéticas
 
 Plataforma SaaS para que barberías, centros de estética y negocios similares administren su agenda y reciban reservas online. Cada negocio tiene su página pública de reservas en `/{nombre-del-local}`.
 
@@ -25,7 +25,7 @@ docker compose up -d
 
 | Servicio | Dirección |
 |---|---|
-| PostgreSQL 17 | `localhost:5433`, base `turnos`, usuario y contraseña `turnos` |
+| PostgreSQL 17 | `localhost:5433`, base `turnos`. Usuario `turnos` (dueño, para migraciones) y `turnos_app` (la aplicación). Contraseña igual al usuario |
 | Mailpit (emails de prueba) | SMTP en `localhost:1025`, interfaz web en http://localhost:8025 |
 
 PostgreSQL usa el puerto **5433** para no chocar con una instalación local en el 5432.
@@ -90,6 +90,46 @@ Está desactivado hasta que configures las credenciales:
 4. El login empieza en http://localhost:3000/api/auth/oauth2/authorization/google.
 
 Nunca subas las credenciales al repositorio.
+
+## Negocios, sucursales y equipo
+
+Todo exige sesión salvo la página pública. Los permisos dependen del rol en cada negocio (dueño, gerente o barbero).
+
+| Endpoint | Para qué | Quién |
+|---|---|---|
+| `POST /api/businesses` | Crea un negocio; quien lo crea queda como dueño | Cualquier persona con sesión |
+| `GET /api/businesses/slug-availability?slug=` | Verifica si un link está libre (mientras se escribe) | Cualquier persona con sesión |
+| `GET /api/businesses/{id}` | Datos del negocio | Su equipo |
+| `PUT /api/businesses/{id}/profile` | Cambia nombre, rubro y descripción | Dueño |
+| `PUT /api/businesses/{id}/slug` | Cambia el link; el anterior sigue llevando al negocio | Dueño |
+| `GET /api/businesses/{id}/branches` | Lista las sucursales | Su equipo |
+| `POST /api/businesses/{id}/branches` · `PUT …/branches/{branchId}` | Crea o cambia una sucursal (con zona horaria) | Dueño |
+| `GET /api/businesses/{id}/members` | Lista el equipo | Dueño y gerentes |
+| `PUT …/members/{userId}/role` | Nombra o quita gerentes | Dueño |
+| `PUT …/members/{userId}/branches` | Asigna sucursales | Dueño; gerente solo a barberos de sus sucursales |
+| `DELETE …/members/{userId}` | Da de baja a un miembro (nunca al dueño) | Dueño; gerente solo a barberos |
+| `POST` · `GET /api/businesses/{id}/invitations` · `DELETE …/invitations/{invitationId}` | Invita por email, lista o revoca invitaciones | Dueño (gerentes y barberos); gerente (barberos de sus sucursales) |
+| `POST /api/invitations/accept` | Acepta una invitación con el token del email (tiene que ser el mismo email) | La persona invitada |
+| `GET /api/memberships` | Negocios en los que trabaja la persona | Cualquier persona con sesión |
+| `GET /api/businesses/{id}/audit-log` | Registro de cambios, incluidos los accesos de soporte | Dueño |
+| `GET /api/public/businesses/{slug}` | Página pública con sus sucursales. Con un slug viejo, `canonicalSlug` indica el actual | Sin sesión |
+
+Un `ADMIN` de la plataforma puede entrar a un negocio para dar soporte solo si manda el encabezado `X-Support-Reason` con el motivo. El acceso queda en el registro de cambios del negocio.
+
+### Aislamiento entre negocios
+
+Hay dos barreras independientes:
+
+1. **Hibernate** filtra por `business_id` toda consulta sobre entidades de un negocio.
+2. **Row Level Security en PostgreSQL**: la aplicación se conecta con el usuario `turnos_app`, que no puede saltearse las políticas. Las migraciones las corre otro usuario, dueño de las tablas.
+
+El usuario `turnos_app` lo crea `docker/postgres/init/01-app-role.sql` la primera vez que se crea el volumen de Docker. Si tu base es anterior a ese script, crealo una vez a mano:
+
+```bash
+docker compose exec postgres psql -U turnos -d turnos -f /docker-entrypoint-initdb.d/01-app-role.sql
+```
+
+En producción se configuran por separado: `DATABASE_USERNAME` / `DATABASE_PASSWORD` (aplicación, sin privilegios) y `FLYWAY_USERNAME` / `FLYWAY_PASSWORD` (migraciones).
 
 ## Pruebas
 

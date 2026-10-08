@@ -4,7 +4,7 @@ Instrucciones para cualquier agente de IA (Claude Code, Codex, Cursor, etc.) que
 
 ## Proyecto
 
-Plataforma SaaS de gestión de turnos para barberías, centros de estética y negocios similares. Cada negocio tiene su página pública de reservas en `/{slug}`, puede tener varias sucursales y trabaja con barberos que fijan sus propios servicios y precios.
+**Laciturnos**: plataforma SaaS de gestión de turnos para barberías, centros de estética y negocios similares. Cada negocio tiene su página pública de reservas en `/{slug}`, puede tener varias sucursales y trabaja con barberos que fijan sus propios servicios y precios.
 
 - Especificación del MVP (fuente de verdad): [docs/especificacion-mvp.md](docs/especificacion-mvp.md)
 - Plan de hitos y su estado: [docs/plan-mvp.md](docs/plan-mvp.md)
@@ -131,7 +131,8 @@ Reglas:
 - Los módulos se comunican por su API pública y por eventos. Nunca acceder a entidades, repositorios ni tablas de otro módulo.
 - La verificación de límites (Spring Modulith y ArchUnit) forma parte de las pruebas y no puede fallar.
 - Los permisos viven en un solo lugar: el `PermissionEvaluator`. El control de acceso se aplica siempre en el servidor.
-- Toda tabla de negocio lleva `business_id`. Filtro automático en la capa de datos más Row Level Security en PostgreSQL.
+- Toda tabla de negocio lleva `business_id`. Filtro automático en la capa de datos más Row Level Security en PostgreSQL. La aplicación se conecta con `turnos_app` (sin privilegios para saltear RLS) y Flyway con el dueño de las tablas.
+- El contexto de aislamiento (`TenantContext`: negocio, persona, sistema) se fija **antes** de abrir la transacción: `@BusinessScoped` + `@BusinessId` en los casos de uso. Cruzar negocios solo con `TenantContext.callAsSystem(motivo, …)`. El código que entrega conexiones nunca lee `SecurityContextHolder` (carga la sesión desde la base y pide otra conexión).
 - Fechas en UTC (`timestamptz`), convertidas con `java.time` según la zona horaria de la sucursal.
 - La prevención de doble reserva se hace en la base de datos (restricción de exclusión), no solo en el código.
 
@@ -151,6 +152,7 @@ Reglas:
 
 - La disponibilidad, la prevención de doble reserva, los permisos y el aislamiento entre negocios se prueban con PostgreSQL real (Testcontainers).
 - Cada regla de permisos tiene pruebas por rol.
+- En pruebas con MockMvc, el CSRF se manda con `SpaCsrf.spaCsrf()`, nunca con `csrf()` de Spring Security Test (modifica el filtro del contexto compartido).
 - Las migraciones tienen que correr desde una base vacía.
 
 ## Forma de trabajo

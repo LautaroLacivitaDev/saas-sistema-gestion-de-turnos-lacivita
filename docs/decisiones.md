@@ -81,3 +81,25 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | `UserRepository.require(id)` para ids que vienen de una sesión o de un token | Una sola forma de tratar la inconsistencia, sin repetir el `orElseThrow` |
 | El registro solo traduce a "email ya registrado" la violación de `user_account_email_uk` | Otras violaciones de integridad no se disfrazan de un error de negocio |
 | Se quitaron getters sin uso y el atributo `phone` sin escritura; getters con el mismo estilo en todas las entidades | Sin código muerto; consistencia |
+
+## Hito 3: negocios, sucursales y equipo (2026-10-08)
+
+| Decisión | Por qué |
+|---|---|
+| El nombre de la app es **Laciturnos** (lo eligió Lautaro). Se usa en la interfaz, los emails y la documentación; el paquete `com.lacivita.turnos`, la base `turnos` y los contenedores no cambian | Renombrar lo interno no aporta nada y obligaría a recrear la base local |
+| Slug de 3 a 50 caracteres (minúsculas, números y guiones), con palabras reservadas (rutas de la app como `api`, `admin`, `login`) | Evita que un negocio tape una página de la plataforma |
+| Todo slug usado queda reservado para siempre al negocio (`business_slug`) y el viejo sigue llevando al actual | Los links compartidos en redes no se rompen ni llevan a otro negocio |
+| La API responde el slug canónico y redirige el frontend, en lugar de un 301 | Next.js sigue los redirects de `fetch` en silencio y el navegador no vería la URL nueva |
+| Zona horaria por sucursal, `America/Argentina/Buenos_Aires` por defecto | Los turnos se guardan en UTC y se muestran según la sucursal |
+| Invitaciones por email válidas 7 días; invitar de nuevo al mismo email reemplaza el link anterior; se aceptan solo con una cuenta del mismo email, y aceptar verifica el email | El link llegó a ese email: usarlo prueba que la persona lo controla |
+| Reglas del equipo en `TeamPolicy` (dominio): nadie toca al dueño, solo el dueño nombra o quita gerentes, el gerente gestiona barberos solo de sus sucursales | Las reglas se prueban sin Spring y el servicio solo orquesta |
+| Aislamiento en dos barreras: `@TenantId` de Hibernate y Row Level Security en PostgreSQL | Si una falla, la otra sigue protegiendo; RLS cubre también el SQL escrito a mano |
+| La app se conecta con `turnos_app` (sin superusuario ni `BYPASSRLS`); Flyway con el dueño de las tablas | Un superusuario se saltea RLS sin avisar |
+| El negocio se fija con `@BusinessScoped` + `@BusinessId` antes de abrir la transacción | La conexión toma el contexto al obtenerse; fijarlo adentro llegaría tarde |
+| La persona con sesión se fija en `TenantContext` desde un filtro de seguridad (`SignedInUserScopeFilter`); la conexión nunca lee la seguridad | Leer la seguridad al pedir una conexión cargaba la sesión desde PostgreSQL, que pedía otra conexión, en cadena, hasta agotar el pool |
+| Los permisos leen la membresía dentro del negocio consultado (`MembershipRoles` es `@BusinessScoped`) | Funcionan igual dentro y fuera de una solicitud HTTP |
+| Operaciones que cruzan negocios solo con `TenantContext.callAsSystem(motivo, …)` (hoy: buscar a qué negocio pertenece el token de una invitación) | Quedan pocas, explícitas y con su porqué en el código |
+| Auditoría síncrona en la misma transacción (`audit_log`), con antes y después en JSON | Si el cambio se guarda, el registro también; nunca uno sin el otro |
+| El acceso de un ADMIN a un negocio exige el encabezado `X-Support-Reason`, se audita una vez por solicitud y lo ve el dueño | Soporte transparente: el dueño sabe quién entró y por qué |
+| `@Version` como `Long` (nulo hasta el primer guardado) en las entidades con id propio | Con `long` Spring Data creía que un negocio nuevo ya existía y hacía `merge` en vez de `persist` |
+| Las pruebas mandan el CSRF como el navegador (`SpaCsrf`: cookie más encabezado) en lugar de `csrf()` de Spring Security Test | `csrf()` reemplaza el repositorio CSRF del contexto compartido y rompía otras pruebas según el orden |

@@ -2,7 +2,7 @@
 // Todos los textos visibles salen de acá, para poder traducirlos más adelante.
 export const messages = {
   app: {
-    name: "Turnos",
+    name: "Laciturnos",
     description:
       "Reservá tu turno en barberías y centros de estética, sin llamadas ni esperas.",
   },

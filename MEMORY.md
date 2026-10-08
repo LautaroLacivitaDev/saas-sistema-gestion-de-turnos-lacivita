@@ -2,39 +2,41 @@
 Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no
 aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decisiones.md`.
 ## Estado actual
-- Hito 2 (usuarios y autenticación) terminado el 2026-10-08: 92 pruebas OK y probado de
-  punta a punta contra Docker pasando por el proxy de Next (registro, sesión, email, logout).
-- Login con Google programado y probado con proveedor simulado; falta probarlo con Google
-  real cuando estén las credenciales (perfil `google`, ver README).
-- Próximo: Hito 3, negocios y sucursales.
+- La app se llama **Laciturnos** (interfaz, emails, docs). Paquete, base y contenedores siguen `turnos`.
+- Hitos 1, 2 y 3 terminados (2026-10-08). Hito 3: negocios, slug con redirección, sucursales,
+  equipo con invitaciones, RLS, auditoría y acceso de soporte del ADMIN. 180 pruebas OK y
+  probado contra Docker.
+- Login con Google probado solo con proveedor simulado; falta Google real (perfil `google`).
+- Próximo: Hito 4, catálogo.
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
 ## Decisiones (y por qué)
 - Roles en dos niveles: Spring Security solo `ADMIN`/`USER`; `OWNER`/`MANAGER`/`BARBER` por
-  membresía, vía `BusinessRoleResolver` (shared) que implementa `users`. Así `shared` no
-  depende de ningún módulo.
-- Sesión en PostgreSQL (Spring Session JDBC): servidores sin estado, escalan horizontalmente.
-- Login con contraseña, link de acceso y Google terminan en el mismo principal
-  (`AuthenticatedUser`) vía `SessionAuthenticator`.
-- Google sobre cuenta sin verificar: se vincula, se verifica y se descarta la contraseña
-  (evita que quien registró un email ajeno conserve el acceso).
-- Tokens de email: solo se guarda el SHA-256; un solo uso y vencimiento por tipo.
-- Emails de cuenta después del commit y sin reintentos (no se usan eventos persistidos para
-  no guardar tokens en claro). El outbox con reintentos llega en el Hito 7.
+  membresía, vía `BusinessMembershipResolver` (shared) que implementa `users`.
+- Sesión en PostgreSQL (Spring Session JDBC): servidores sin estado.
+- Aislamiento en dos barreras: `@TenantId` de Hibernate + RLS. La app usa `turnos_app` (sin
+  privilegios), Flyway el dueño. `TenantContext` (negocio, persona, sistema) se fija antes de la
+  transacción con `@BusinessScoped`; la persona la fija `SignedInUserScopeFilter`.
+- Cruzar negocios solo con `TenantContext.callAsSystem(motivo, …)`.
+- Auditoría síncrona en la misma transacción; el acceso de soporte exige `X-Support-Reason`.
+- Tokens de email: solo el SHA-256, un uso. Emails después del commit y sin reintentos hasta
+  el outbox del Hito 7.
 - Rate limit por IP en memoria (Caffeine + Bucket4j); distribuido si hace falta en Hito 10.
 ## Aprendizajes y errores a evitar
-- Nunca editar una migración ya aplicada, ni un comentario: Flyway valida el checksum.
+- Nunca editar una migración ya commiteada, ni un comentario: Flyway valida el checksum.
 - PostgreSQL de Docker va en el 5433: la PC ya tiene otro PostgreSQL en el 5432.
-- Boot 4: las anotaciones de prueba web están en `org.springframework.boot.webmvc.test.autoconfigure`
-  y los starters cambiaron de nombre (`spring-boot-starter-security-oauth2-client`).
-- Boot 4 + Spring Session: `server.servlet.session.cookie.*` NO se aplica. La cookie se
-  configura con un bean `CookieSerializer`. Verificar siempre el `Set-Cookie` real.
-- Todo lo que va en la sesión tiene que ser `Serializable` (se guarda en PostgreSQL).
-- Hibernate valida tipos: usar `VARCHAR`, no `CHAR`, para columnas `String`.
-- El health de mail marca la app como caída si no hay SMTP: está desactivado a propósito.
+- Boot 4: anotaciones de prueba web en `org.springframework.boot.webmvc.test.autoconfigure`;
+  `server.servlet.session.cookie.*` no se aplica a Spring Session (bean `CookieSerializer`).
+- Todo lo que va en la sesión tiene que ser `Serializable`.
+- Hibernate valida tipos: `VARCHAR`, no `CHAR`, para columnas `String`.
+- Nunca leer `SecurityContextHolder` al entregar una conexión: carga la sesión desde la base,
+  pide otra conexión y agota el pool (se diagnosticó con `leak-detection-threshold` de Hikari).
+- `@Version` como `Long`, no `long`: con id propio, Spring Data hacía `merge` en las altas.
+- Entidad ya cargada: `flush()`, no `saveAndFlush` (el `merge` falla con hijos nuevos).
+- `csrf()` de Spring Security Test cambia el filtro del contexto compartido: usar `SpaCsrf`.
+- Spring ya no copia el mensaje de PostgreSQL en la excepción: mirar `rootCause()`.
 - En pruebas, las colecciones lazy se leen dentro de `TransactionTemplate`.
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
-- Next genera tipos en `.next/`: `typecheck` corre `next typegen` antes de `tsc`.
 - En Windows, git no marca `mvnw` como ejecutable: `git update-index --chmod=+x`.
 ## Próximos pasos
 - Lautaro: crear las credenciales OAuth de Google y probar el login real.
-- Arrancar el Hito 3 (incluye auditar el acceso de un ADMIN a un negocio).
+- Hito 4: servicios, combos (un solo profesional) y precios por barbero.
