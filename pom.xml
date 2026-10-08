@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  POM agregador. Existe solo para que IntelliJ IDEA importe el backend automáticamente
+  al abrir la carpeta raíz del repositorio. El build real se hace desde backend/ con su wrapper:
+    cd backend && mvnw.cmd verify   (Windows)
+    cd backend && ./mvnw verify     (Unix)
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.lacivita</groupId>
+    <artifactId>turnos-root</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>backend</module>
+    </modules>
+</project>
