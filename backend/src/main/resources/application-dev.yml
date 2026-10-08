@@ -1,0 +1,18 @@
+# Desarrollo local. Requiere `docker compose up -d` en la raíz del repositorio.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/turnos
+    username: turnos
+    password: turnos
+  mail:
+    host: localhost
+    port: 1025
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, modulith
+  endpoint:
+    health:
+      show-details: always

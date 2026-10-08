@@ -1,0 +1,47 @@
+# Configuración común a todos los entornos.
+# Lo específico de cada entorno va en application-{perfil}.yml.
+spring:
+  application:
+    name: turnos
+  profiles:
+    # Sin perfil explícito se usa dev, así la aplicación arranca desde el IDE sin configurar nada.
+    default: dev
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    time-zone: UTC
+
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /api/openapi
+  swagger-ui:
+    path: /api/docs
