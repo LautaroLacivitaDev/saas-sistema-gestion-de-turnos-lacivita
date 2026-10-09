@@ -69,6 +69,7 @@ class BusinessDirectoryService implements BusinessDirectory, BranchLocator {
                         branch.getId(),
                         branch.getBusinessId(),
                         branch.details().name(),
+                        branch.details().address().oneLine(),
                         branch.details().timeZone()));
     }
 

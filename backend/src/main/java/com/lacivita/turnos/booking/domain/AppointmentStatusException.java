@@ -18,6 +18,10 @@ public class AppointmentStatusException extends RuleViolationException {
         return new AppointmentStatusException("appointment_not_started", "Todavía no llegó la hora del turno.");
     }
 
+    static AppointmentStatusException alreadyStarted() {
+        return new AppointmentStatusException("appointment_already_started", "La hora del turno ya pasó.");
+    }
+
     private static String label(AppointmentStatus status) {
         return switch (status) {
             case HOLD -> "sin confirmar";

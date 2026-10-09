@@ -13,7 +13,6 @@ import com.lacivita.turnos.booking.domain.GuestDetailsMissingException;
 import com.lacivita.turnos.booking.domain.HumanCheck;
 import com.lacivita.turnos.booking.domain.HumanCheckFailedException;
 import com.lacivita.turnos.booking.domain.InvalidCodeException;
-import com.lacivita.turnos.booking.domain.ManageToken;
 import com.lacivita.turnos.booking.domain.SlotNotAvailableException;
 import com.lacivita.turnos.business.BusinessDirectory;
 import com.lacivita.turnos.business.BusinessSummary;
@@ -46,8 +45,8 @@ import org.springframework.transaction.annotation.Transactional;
  *       disponible", se asigna al profesional libre con menos turnos ese día.
  *   <li>Si no tiene sesión con el email verificado, deja sus datos, pasa la verificación anti-bots y recibe
  *       un código por email.
- *   <li>Confirma: el turno copia el precio y la duración de cada servicio y le llega el link para
- *       gestionarlo.
+ *   <li>Confirma: el turno copia el precio y la duración de cada servicio y le llega un email con el link
+ *       para gestionarlo.
  * </ol>
  */
 // DECISIÓN: "cualquiera disponible" asigna al profesional con menos turnos ese día. La especificación pide
@@ -186,29 +185,11 @@ public class OnlineBooking {
         }
         guestChecks.findById(holdId).ifPresent(guestChecks::delete);
 
-        var token = ManageToken.generate();
-        hold.confirmHold(customer.getId(), token, now);
-        events.publishEvent(new BookingEvents.AppointmentBooked(
-                businessId,
-                hold.getId(),
-                hold.getBarberId(),
-                hold.getStartsAt(),
-                hold.getSource().name(),
-                hold.getStatus().name()));
-
-        var view = viewer.view(businessId, hold);
-        var contact = customer.contact();
-        if (contact.email() != null) {
-            emails.sendConfirmation(
-                    contact.email(),
-                    contact.name(),
-                    businessName(businessId),
-                    actors.branchOf(businessId, hold.getBranchId()),
-                    view.barberName(),
-                    hold,
-                    token);
-        }
-        return view;
+        hold.confirmHold(customer.getId(), now);
+        // El email de confirmación, con el link para gestionar el turno, lo manda el módulo de
+        // notificaciones al recibir el evento.
+        events.publishEvent(BookingEvents.booked(hold));
+        return viewer.view(businessId, hold);
     }
 
     /** El profesional libre con menos turnos ese día (a igualdad, siempre el mismo). */

@@ -40,7 +40,7 @@ class AppointmentTests {
         void confirmingInTimeLeavesItConfirmedWithItsCustomer() {
             var hold = hold(List.of(CORTE));
 
-            hold.confirmHold(CUSTOMER, ManageToken.generate(), NOW.plusSeconds(60));
+            hold.confirmHold(CUSTOMER, NOW.plusSeconds(60));
 
             assertThat(hold.getStatus()).isEqualTo(AppointmentStatus.CONFIRMED);
             assertThat(hold.customerId()).contains(CUSTOMER);
@@ -51,8 +51,7 @@ class AppointmentTests {
         void anExpiredHoldCannotBeConfirmed() {
             var hold = hold(List.of(CORTE));
 
-            assertThatThrownBy(
-                            () -> hold.confirmHold(CUSTOMER, ManageToken.generate(), NOW.plus(Duration.ofMinutes(5))))
+            assertThatThrownBy(() -> hold.confirmHold(CUSTOMER, NOW.plus(Duration.ofMinutes(5))))
                     .isInstanceOf(HoldExpiredException.class);
         }
     }

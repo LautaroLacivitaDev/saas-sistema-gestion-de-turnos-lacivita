@@ -1,109 +1,53 @@
 package com.lacivita.turnos.booking.application;
 
+import com.lacivita.turnos.booking.AppointmentBooked;
+import com.lacivita.turnos.booking.AppointmentEvent;
+import com.lacivita.turnos.booking.AppointmentRescheduled;
+import com.lacivita.turnos.booking.AppointmentStatusChanged;
+import com.lacivita.turnos.booking.domain.Appointment;
 import com.lacivita.turnos.booking.domain.AppointmentStatus;
 import com.lacivita.turnos.shared.audit.AuditableEvent;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Cambios en los turnos. Por ahora solo los consume el registro de auditoría; las notificaciones al
- * cliente y al profesional llegan en el Hito 7.
+ * Eventos del módulo. Los cambios de los turnos son parte de su API ({@link AppointmentEvent}): los
+ * escuchan la auditoría y las notificaciones. Los demás son internos y solo los registra la auditoría.
  */
 final class BookingEvents {
 
     private BookingEvents() {}
 
-    /** Base común: todos los eventos son de un turno de un negocio. */
-    private interface AppointmentEvent extends AuditableEvent {
-
-        UUID businessId();
-
-        UUID appointmentId();
-
-        @Override
-        default Optional<UUID> auditBusinessId() {
-            return Optional.of(businessId());
-        }
-
-        @Override
-        default String auditEntityType() {
-            return "Appointment";
-        }
-
-        @Override
-        default String auditEntityId() {
-            return appointmentId().toString();
-        }
+    static AppointmentBooked booked(Appointment appointment) {
+        return new AppointmentBooked(
+                appointment.getBusinessId(),
+                appointment.getId(),
+                appointment.getBranchId(),
+                appointment.getBarberId(),
+                appointment.getStartsAt(),
+                appointment.getSource().name(),
+                appointment.getStatus().name());
     }
 
-    record AppointmentBooked(
-            UUID businessId, UUID appointmentId, UUID barberId, Instant startsAt, String source, String status)
-            implements AppointmentEvent {
-
-        @Override
-        public String auditAction() {
-            return "appointment.booked";
-        }
-
-        @Override
-        public Optional<Object> auditAfter() {
-            return Optional.of(
-                    Map.of("barberId", barberId, "startsAt", startsAt.toString(), "source", source, "status", status));
-        }
+    static AppointmentStatusChanged statusChanged(Appointment appointment, AppointmentStatus before) {
+        return new AppointmentStatusChanged(
+                appointment.getBusinessId(),
+                appointment.getId(),
+                before.name(),
+                appointment.getStatus().name());
     }
 
-    record StatusChanged(UUID businessId, UUID appointmentId, AppointmentStatus before, AppointmentStatus after)
-            implements AppointmentEvent {
-
-        @Override
-        public String auditAction() {
-            return "appointment.status_changed";
-        }
-
-        @Override
-        public Optional<Object> auditBefore() {
-            return Optional.of(Map.of("status", before));
-        }
-
-        @Override
-        public Optional<Object> auditAfter() {
-            return Optional.of(Map.of("status", after));
-        }
-    }
-
-    record Rescheduled(
-            UUID businessId,
-            UUID appointmentId,
-            UUID barberBefore,
-            Instant startBefore,
-            UUID barberAfter,
-            Instant startAfter)
-            implements AppointmentEvent {
-
-        @Override
-        public String auditAction() {
-            return "appointment.rescheduled";
-        }
-
-        @Override
-        public Optional<Object> auditBefore() {
-            return Optional.of(slot(barberBefore, startBefore));
-        }
-
-        @Override
-        public Optional<Object> auditAfter() {
-            return Optional.of(slot(barberAfter, startAfter));
-        }
-
-        private static Map<String, Object> slot(UUID barberId, Instant startsAt) {
-            var map = new HashMap<String, Object>();
-            map.put("barberId", barberId);
-            map.put("startsAt", startsAt.toString());
-            return map;
-        }
+    static AppointmentRescheduled rescheduled(Appointment appointment, UUID barberBefore, Instant startBefore) {
+        return new AppointmentRescheduled(
+                appointment.getBusinessId(),
+                appointment.getId(),
+                appointment.getBranchId(),
+                barberBefore,
+                startBefore,
+                appointment.getBarberId(),
+                appointment.getStartsAt());
     }
 
     record CancellationPolicyChanged(UUID businessId, int before, int after) implements AuditableEvent {

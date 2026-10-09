@@ -7,6 +7,10 @@ import com.lacivita.turnos.ApiClient;
 import com.lacivita.turnos.ApiClient.Session;
 import com.lacivita.turnos.IntegrationTest;
 import com.lacivita.turnos.RecordingMailer;
+import com.lacivita.turnos.RecordingNotificationChannel;
+import com.lacivita.turnos.TestClock;
+import com.lacivita.turnos.booking.application.ExpiredHoldsCleanup;
+import com.lacivita.turnos.notifications.application.NotificationDispatcher;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -44,6 +48,18 @@ class BookingApiIntegrationTests {
 
     @Autowired
     RecordingMailer mailer;
+
+    @Autowired
+    RecordingNotificationChannel channel;
+
+    @Autowired
+    NotificationDispatcher dispatcher;
+
+    @Autowired
+    ExpiredHoldsCleanup holdsCleanup;
+
+    @Autowired
+    TestClock clock;
 
     ApiClient api;
     Session owner;
@@ -108,7 +124,8 @@ class BookingApiIntegrationTests {
                     .contains("09:30", "10:30")
                     .doesNotContain("10:00");
 
-            String token = mailer.lastTokenSentTo(email).orElseThrow();
+            dispatcher.dispatchDue();
+            String token = channel.lastManageTokenSentTo(email).orElseThrow();
             assertThat(api.post(null, "/api/public/appointments/lookup", tokenJson(token)))
                     .hasStatusOk()
                     .bodyJson()
@@ -176,6 +193,23 @@ class BookingApiIntegrationTests {
         }
 
         @Test
+        void theCleanupDeletesHoldsThatExpired() {
+            var holdId = ApiClient.read(hold(barber.userId(), "10:00"), "$.holdId");
+            try {
+                clock.advance(Duration.ofMinutes(6));
+                holdsCleanup.run();
+            } finally {
+                clock.reset();
+            }
+
+            assertThat(confirm(holdId, "123456", null))
+                    .hasStatus(HttpStatus.NOT_FOUND)
+                    .bodyJson()
+                    .extractingPath("$.code")
+                    .isEqualTo("appointment_not_found");
+        }
+
+        @Test
         void anyAvailableGoesToTheBarberWithFewerAppointmentsThatDay() {
             book(manager, barber, "11:00", true);
 
@@ -197,7 +231,8 @@ class BookingApiIntegrationTests {
             String email = "cliente-" + UUID.randomUUID() + "@example.com";
             requestCode(holdId, email);
             confirm(holdId, mailer.lastCodeSentTo(email).orElseThrow(), null);
-            token = mailer.lastTokenSentTo(email).orElseThrow();
+            dispatcher.dispatchDue();
+            token = channel.lastManageTokenSentTo(email).orElseThrow();
         }
 
         @Test

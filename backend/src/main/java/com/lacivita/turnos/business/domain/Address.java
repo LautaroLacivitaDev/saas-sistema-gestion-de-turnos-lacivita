@@ -20,6 +20,11 @@ public record Address(String street, String neighborhood, String city) {
         }
     }
 
+    /** La dirección en una línea, para mostrar: "calle, barrio, ciudad" (sin barrio si no se informó). */
+    public String oneLine() {
+        return neighborhood == null ? street + ", " + city : street + ", " + neighborhood + ", " + city;
+    }
+
     private static String required(String value, int maxLength, String code, String label) {
         if (value == null || value.isBlank()) {
             throw new InvalidValueException(code, label + " es obligatoria.");

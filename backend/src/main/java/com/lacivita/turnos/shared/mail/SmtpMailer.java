@@ -13,10 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-// DECISIÓN: los emails de la cuenta se envían después del commit y sin reintentos automáticos.
-// Si el envío falla, la persona puede pedir el link de nuevo. El outbox con reintentos llega con
-// el módulo de notificaciones (Hito 7). No se usan eventos persistidos de Modulith para no guardar
-// el token en claro en la tabla event_publication.
+// DECISIÓN: los emails de la cuenta (y el código de la reserva como invitado) se envían después del
+// commit y sin reintentos automáticos: los espera la persona en ese momento y, si no llegan, pide otro.
+// No pasan por la bandeja de salida de notificaciones para no guardar tokens ni códigos en claro.
 @Component
 class SmtpMailer implements Mailer {
 

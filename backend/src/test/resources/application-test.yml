@@ -8,3 +8,11 @@ app:
   rate-limit:
     # Alto para que las pruebas no se frenen entre sí. El límite se prueba aparte.
     requests-per-minute: 10000
+  notifications:
+    # Las pruebas envían cuando lo deciden, llamando al despachador.
+    send-on-commit: false
+
+jobrunr:
+  # Sin servidor de tareas: las pruebas ejecutan las tareas directamente.
+  background-job-server:
+    enabled: false

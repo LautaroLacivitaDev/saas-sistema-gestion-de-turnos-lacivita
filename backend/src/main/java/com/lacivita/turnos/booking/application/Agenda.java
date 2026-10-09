@@ -123,13 +123,7 @@ public class Agenda {
                         actor.id(),
                         now),
                 now);
-        events.publishEvent(new BookingEvents.AppointmentBooked(
-                businessId,
-                appointment.getId(),
-                appointment.getBarberId(),
-                appointment.getStartsAt(),
-                appointment.getSource().name(),
-                appointment.getStatus().name()));
+        events.publishEvent(BookingEvents.booked(appointment));
         return viewer.view(businessId, appointment);
     }
 
@@ -151,7 +145,7 @@ public class Agenda {
             case HOLD, PENDING ->
                 throw new InvalidValueException("invalid_status", "Un turno no puede volver a ese estado.");
         }
-        events.publishEvent(new BookingEvents.StatusChanged(businessId, appointmentId, before, target));
+        events.publishEvent(BookingEvents.statusChanged(appointment, before));
         return viewer.view(businessId, appointment);
     }
 
@@ -179,8 +173,7 @@ public class Agenda {
         slots.releaseExpiredHolds(barberAfter, now);
         appointment.reschedule(newStart, barberAfter, now);
         slots.flushMove();
-        events.publishEvent(new BookingEvents.Rescheduled(
-                businessId, appointmentId, barberBefore, startBefore, barberAfter, newStart));
+        events.publishEvent(BookingEvents.rescheduled(appointment, barberBefore, startBefore));
         return viewer.view(businessId, appointment);
     }
 

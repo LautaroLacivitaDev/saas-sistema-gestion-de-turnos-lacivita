@@ -1,8 +1,8 @@
 package com.lacivita.turnos.booking.application;
 
 import com.lacivita.turnos.booking.application.BookingViews.ManagedAppointmentView;
+import com.lacivita.turnos.booking.domain.AppointmentLinkRepository;
 import com.lacivita.turnos.booking.domain.AppointmentNotFoundException;
-import com.lacivita.turnos.booking.domain.AppointmentRepository;
 import com.lacivita.turnos.booking.domain.ManageToken;
 import com.lacivita.turnos.shared.tenancy.TenantContext;
 import java.time.Instant;
@@ -16,17 +16,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class ManageLinks {
 
-    private final AppointmentRepository appointments;
+    private final AppointmentLinkRepository links;
     private final CustomerChanges changes;
 
-    ManageLinks(AppointmentRepository appointments, CustomerChanges changes) {
-        this.appointments = appointments;
+    ManageLinks(AppointmentLinkRepository links, CustomerChanges changes) {
+        this.links = links;
         this.changes = changes;
     }
 
     public ManagedAppointmentView view(String rawToken) {
         var token = new ManageToken(rawToken);
         return changes.view(businessOf(token), token);
+    }
+
+    public ManagedAppointmentView confirm(String rawToken) {
+        var token = new ManageToken(rawToken);
+        return changes.confirm(businessOf(token), token);
     }
 
     public ManagedAppointmentView cancel(String rawToken) {
@@ -42,7 +47,7 @@ public class ManageLinks {
     private UUID businessOf(ManageToken token) {
         return TenantContext.callAsSystem(
                         "link del cliente: averiguar el negocio del turno",
-                        () -> appointments.findBusinessIdByManageTokenHash(token.hash()))
+                        () -> links.findBusinessIdByTokenHash(token.hash()))
                 .orElseThrow(AppointmentNotFoundException::new);
     }
 }

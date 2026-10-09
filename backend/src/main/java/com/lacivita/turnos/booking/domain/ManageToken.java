@@ -9,7 +9,7 @@ import java.util.HexFormat;
 
 /**
  * Secreto del link que recibe el cliente para ver, cancelar o reprogramar su turno sin iniciar sesión.
- * Solo existe en memoria y en el email: en la base se guarda su {@link #hash()}.
+ * Solo existe en memoria y en el email: en la base se guarda su {@link #hash()} ({@link AppointmentLink}).
  */
 public record ManageToken(String value) {
 

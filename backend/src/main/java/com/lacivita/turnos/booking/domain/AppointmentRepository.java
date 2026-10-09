@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface AppointmentRepository extends Repository<Appointment, UUID> {
 
@@ -19,12 +20,6 @@ public interface AppointmentRepository extends Repository<Appointment, UUID> {
     void flush();
 
     Optional<Appointment> findById(UUID id);
-
-    Optional<Appointment> findByManageTokenHash(String manageTokenHash);
-
-    /** Negocio del turno de un link. Se consulta como operación de sistema, antes de saber el negocio. */
-    @Query("select a.businessId from Appointment a where a.manageTokenHash = :hash")
-    Optional<UUID> findBusinessIdByManageTokenHash(@Param("hash") String hash);
 
     /** Turnos que ocupan el horario del profesional en el período (los HOLD, solo si no vencieron). */
     @Query("""
@@ -61,11 +56,28 @@ public interface AppointmentRepository extends Repository<Appointment, UUID> {
             """)
     void deleteExpiredHolds(@Param("barberId") UUID barberId, @Param("now") Instant now);
 
+    /** Borra los HOLD vencidos de todos los profesionales. Lo usa la limpieza periódica. */
+    @Transactional
+    @Modifying
+    @Query("""
+            delete from Appointment a
+            where a.status = com.lacivita.turnos.booking.domain.AppointmentStatus.HOLD and a.holdExpiresAt <= :now
+            """)
+    int deleteAllExpiredHolds(@Param("now") Instant now);
+
+    /** Turnos del profesional en el período, ordenados por hora. */
+    @Query("""
+            select a from Appointment a
+            where a.barberId = :barberId and a.status in :statuses and a.startsAt < :to and a.endsAt > :from
+            order by a.startsAt
+            """)
+    List<Appointment> findForBarberInPeriod(
+            @Param("barberId") UUID barberId,
+            @Param("statuses") Collection<AppointmentStatus> statuses,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
     default Appointment require(UUID id) {
         return findById(id).orElseThrow(AppointmentNotFoundException::new);
-    }
-
-    default Appointment requireByToken(ManageToken token) {
-        return findByManageTokenHash(token.hash()).orElseThrow(AppointmentNotFoundException::new);
     }
 }

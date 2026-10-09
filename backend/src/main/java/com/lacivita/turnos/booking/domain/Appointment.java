@@ -85,9 +85,6 @@ public class Appointment {
     @OrderColumn(name = "position")
     private List<AppointmentLine> lines = new ArrayList<>();
 
-    /** Hash del link del cliente; nulo hasta que el turno se confirma online. */
-    private String manageTokenHash;
-
     /** Persona del equipo que cargó el turno; nula si lo reservó el cliente. */
     private UUID createdBy;
 
@@ -173,11 +170,10 @@ public class Appointment {
         return appointment;
     }
 
-    /** El cliente completó sus datos a tiempo: el turno queda confirmado y le llega su link. */
-    public void confirmHold(UUID customer, ManageToken token, Instant now) {
+    /** El cliente completó sus datos a tiempo: el turno queda confirmado. */
+    public void confirmHold(UUID customer, Instant now) {
         requireLiveHold(now);
         this.customerId = Objects.requireNonNull(customer, "customer");
-        this.manageTokenHash = token.hash();
         this.holdExpiresAt = null;
         changeStatus(AppointmentStatus.CONFIRMED, now);
     }
@@ -197,6 +193,14 @@ public class Appointment {
     public void confirm(Instant now) {
         requireStatus(EnumSet.of(AppointmentStatus.PENDING));
         changeStatus(AppointmentStatus.CONFIRMED, now);
+    }
+
+    /** El cliente confirma desde su link que va a venir. Solo antes de la hora del turno. */
+    public void confirmByCustomer(Instant now) {
+        if (!now.isBefore(startsAt)) {
+            throw AppointmentStatusException.alreadyStarted();
+        }
+        confirm(now);
     }
 
     public void start(Instant now) {
@@ -301,6 +305,14 @@ public class Appointment {
 
     public Money getTotalPrice() {
         return totalPrice;
+    }
+
+    /**
+     * Cuántas veces cambió el turno desde que se guardó. Los calendarios lo usan para saber que un evento
+     * es una versión más nueva del mismo turno.
+     */
+    public long revision() {
+        return version == null ? 0 : version;
     }
 
     private void requireCustomerCanChange(CancellationPolicy policy, Instant now) {

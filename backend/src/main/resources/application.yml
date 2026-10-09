@@ -32,6 +32,16 @@ spring:
     jdbc:
       initialize-schema: never
     timeout: 14d
+  mail:
+    properties:
+      # Un proveedor que no responde no debe retener el envío: cada intento corta a los 10 segundos y se
+      # reintenta más tarde (mucho antes de que venza el plazo de 2 minutos de un envío tomado).
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+  thymeleaf:
+    # Thymeleaf solo arma los emails; las pantallas son del frontend.
+    check-template-location: false
 
 server:
   error:
@@ -48,6 +58,21 @@ app:
   # Cloudflare Turnstile para las reservas como invitado. Vacío lo desactiva (solo desarrollo y pruebas).
   turnstile:
     secret-key: ${TURNSTILE_SECRET_KEY:}
+  notifications:
+    # Envía los avisos apenas se confirma el cambio del turno. La tarea periódica de JobRunr igual
+    # revisa cada minuto los recordatorios, los resúmenes y los reintentos.
+    send-on-commit: true
+
+# Tareas en segundo plano y programadas. Las tablas las crea Flyway (V14), no JobRunr.
+jobrunr:
+  database:
+    skip-create: true
+  background-job-server:
+    enabled: true
+  dashboard:
+    enabled: false
+  miscellaneous:
+    allow-anonymous-data-usage: false
 
 management:
   endpoints:
