@@ -215,3 +215,27 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 |---|---|
 | Laciturnos se publica como proyecto de portfolio: en los subdominios gratuitos del hosting, sin dominio propio | No hace falta para mostrarlo; el dominio `laciturnos.com.ar` queda sin usar |
 | En el Hito 10 se suma un modo demo: un `NotificationChannel` que guarda los emails para verlos en la app en lugar de enviarlos, y datos de ejemplo | Quien prueba la app ve los emails (con `.ics` y botones) sin dejar su dirección. La configuración de Resend queda lista por si algún día se usa en serio |
+
+## Hito 8: frontend público (2026-10-09)
+
+| Decisión | Por qué |
+|---|---|
+| Buscador con trigramas de PostgreSQL (`pg_trgm`) sobre el texto sin tildes: cada palabra tiene que parecerse (desde 0,4) al nombre, al rubro o al barrio y la ciudad de una sucursal. Todas las palabras tienen que coincidir | Tolera una letra cambiada o faltante; exigir todas evita resultados de más con búsquedas como "barbería palermo" |
+| Las palabras se separan por todo lo que no sea letra o número, igual que `pg_trgm` | Si no, "corte+barba" llegaba como una sola palabra y encontraba cualquier cosa |
+| Perfil público del profesional por negocio (`barber_profile`, módulo catálogo): descripción, hasta 6 especialidades y la foto como link https. Lo editan quienes ya gestionan sus servicios | Subir fotos requiere almacenamiento propio (S3 o similar); para el portfolio alcanza un link |
+| En la página pública aparecen solo los profesionales que hacen al menos un servicio. Sin sucursales asignadas (el dueño), atiende en todas | Es lo que se puede reservar |
+| "Mis turnos": los últimos 50 de la cuenta en todos los negocios. Buscar en qué negocios tiene turnos cruza negocios (operación de sistema filtrada por la cuenta); cada turno se lee dentro de su negocio | Sirve para ver lo próximo y repetir; paginar queda para cuando haga falta |
+| "Repetir" lleva al flujo con sucursal, servicio o combo y profesional ya elegidos (por parámetros del link); el cliente solo elige día y horario | La reserva más común es la misma de siempre |
+| La vista del turno incluye el combo y la del link del cliente, el slug del negocio | Hacen falta para buscar horarios al reprogramar y para "reservar otro turno" |
+| Se reservaron los links `turno` y `mis-turnos` | Son páginas del sitio: ningún negocio puede tomarlos |
+| Next.js con Cache Components: las páginas públicas son un esqueleto estático y los datos del negocio llegan en el mismo HTML (streaming), guardados en caché unos minutos (`cacheLife("minutes")`) | Carga rápida en el celular y contenido visible para los buscadores |
+| Un negocio inexistente muestra "no encontrado" con `noindex`, pero con estado 200: el streaming ya empezó cuando se sabe que no existe | Es como funciona Next con streaming; `noindex` evita que se indexe |
+| Tipos del cliente generados desde el OpenAPI (`openapi-typescript`). Springdoc no marca qué campos son obligatorios: se generan todos como obligatorios y los que pueden venir en null se declaran en `lib/api/types.ts` | Un solo lugar para la nulabilidad, sin chequeos de más en las pantallas |
+| Llamadas desde el navegador al mismo dominio (`/api/*` pasa por Next al backend) con el token CSRF de la cookie `XSRF-TOKEN` | La cookie de sesión funciona sin CORS |
+| TanStack Query para horarios y cuenta; React Hook Form + Zod para los formularios; los errores por campo del backend se muestran en su campo | El stack de la especificación |
+| Flujo de reserva de 3 pasos en el cliente, con la acción principal fija al pie; los días se eligen en una tira desplazable de 14 días y los horarios en botones de 44 px | Mobile first |
+| La verificación anti-bots (Turnstile) se muestra solo si está configurada la clave del sitio (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`) | En desarrollo está desactivada en el frontend y en el backend |
+| Después de ingresar se vuelve a `next` solo si es una ruta interna | Evita la redirección abierta a otros sitios |
+| La página del link del cliente no manda el `Referer` | El token va en la URL del email |
+| Botón táctil (`size="touch"`, 44 px y letra de 16 px) y `buttonVariants` combina las clases (si no, en los links el borde transparente de la base tapaba el de la variante) | Se vio al probar en el navegador |
+| QR del negocio armado en el servidor como SVG | No suma JavaScript al celular |

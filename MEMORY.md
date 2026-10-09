@@ -3,13 +3,12 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decisiones.md`.
 ## Estado actual
 - La app se llama **Laciturnos** (interfaz, emails, docs). Paquete, base y contenedores siguen `turnos`.
-- Hitos 1 a 7 terminados (2026-10-09). Hito 7: notificaciones (outbox, JobRunr, recordatorios,
-  resumen diario, textos del negocio, .ics, avisos en la app). 330 pruebas OK y Docker.
+- Hitos 1 a 8 terminados (2026-10-09). Hito 8: sitio público (buscador, `/{slug}`, perfiles, reserva en
+  3 pasos, `/turno`, cuenta y "mis turnos"). Backend 348 pruebas, frontend 21; probado a 320/375 px.
 - **Mobile first**: la app se usa sobre todo desde el celular. Reglas en AGENTS.md; cada pantalla
   se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
 - Login con Google probado solo con proveedor simulado; para Google real faltan credenciales OAuth.
-- Próximo: Hito 8, frontend público (buscador, `/{slug}`, flujo de reserva, `/turno?token=`).
-- **Portfolio**: se publica en subdominios del hosting, sin dominio propio (ver Próximos pasos).
+- Próximo: Hito 9, panel del negocio (agenda Día/Semana, catálogo, equipo, horarios, clientes).
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
 ## Decisiones (y por qué)
 - Roles en dos niveles: Spring Security solo `ADMIN`/`USER`; `OWNER`/`MANAGER`/`BARBER` por
@@ -44,7 +43,8 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - Constantes `static final` que usa el constructor van ANTES de las que crean instancias
   (pasó dos veces: `Money.ZERO` y `ScheduleRules.DEFAULT`). Propuesto pasarlo a AGENTS.md.
 - Flyway "more than one migration with version": migración vieja en `target/`, `mvnw clean verify`.
-- Si un cambio de CSS no se ve en `npm run dev`, borrar `.next/` (caché de Turbopack).
+- Si en `npm run dev` un cambio no se ve o una página queda en "Cargando…" (el contenido llega pero
+  no se muestra), borrar `.next/` y reiniciar: es la caché de Turbopack, no un error del código.
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
 ## Próximos pasos
 - Proyecto de portfolio (2026-10-09): sin dominio propio; en Hito 10, modo demo de emails y datos de ejemplo.

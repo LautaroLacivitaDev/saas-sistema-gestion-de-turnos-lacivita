@@ -108,6 +108,7 @@ Documentar siempre la variante de Windows (`mvnw.cmd`) y la de Unix (`./mvnw`). 
 | Formatear el backend | `mvnw.cmd spotless:apply` | `./mvnw spotless:apply` |
 | Frontend en desarrollo | `npm run dev` | `npm run dev` |
 | Lint, tipos, pruebas y build del frontend | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` | igual |
+| Regenerar los tipos de la API (con el backend corriendo) | `npm run api:types` | `npm run api:types` |
 
 Direcciones en desarrollo: API en http://localhost:8080/api, Swagger UI en http://localhost:8080/api/docs, frontend en http://localhost:3000, Mailpit en http://localhost:8025.
 

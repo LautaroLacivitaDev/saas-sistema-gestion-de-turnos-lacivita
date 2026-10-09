@@ -52,7 +52,13 @@ npm install
 npm run dev
 ```
 
-Abrí http://localhost:3000. Las llamadas a `/api/*` se redirigen al backend en `localhost:8080`. Para cambiar esa dirección, copiá `.env.example` como `.env.local`.
+Abrí http://localhost:3000. Las llamadas a `/api/*` se redirigen al backend en `localhost:8080`. Para cambiar esa dirección (y la del sitio o la clave de Turnstile), copiá `.env.example` como `.env.local`.
+
+Los tipos de la API (`src/lib/api/schema.d.ts`) se generan desde el OpenAPI del backend. Con el backend corriendo, después de cambiar un endpoint:
+
+```bash
+npm run api:types
+```
 
 ## Autenticación
 
@@ -214,6 +220,29 @@ Dos turnos activos del mismo profesional nunca se superponen: lo impide una rest
 ### Cloudflare Turnstile
 
 En desarrollo y en las pruebas está desactivado (la aplicación lo avisa en el log). En producción es obligatorio: configurá `TURNSTILE_SECRET_KEY` con la clave secreta del sitio; sin ella la aplicación no arranca.
+
+## Sitio público
+
+Pensado para el celular: una columna, botones de 44 px, letra de 16 px en los formularios y la acción principal fija al pie. Probado a 320 y 375 px y en escritorio.
+
+| Página | Qué hay |
+|---|---|
+| `/` y `/buscar?q=` | Buscador de negocios por nombre, rubro o barrio, que tolera errores de tipeo y tildes ("barbria palerno" encuentra "Barbería El Tano", en Palermo) |
+| `/{slug}` | Página del negocio, armada en el servidor: servicios con precio "desde", combos, profesionales, sucursales con horarios, "Cómo llegar" y el QR para compartir. Open Graph y datos estructurados (schema.org). Un link viejo redirige al actual |
+| `/{slug}/profesionales/{id}` | Perfil del profesional: foto, descripción, especialidades, precios y "Reservar con…" |
+| `/{slug}/reservar` | Reserva en 3 pasos: servicio, día y horario (el horario queda guardado 5 minutos), y datos con código por email (o confirmar directo con cuenta y email verificado). Acepta lo ya elegido en el link: `?sucursal=&servicio=` o `combo=` y `profesional=` |
+| `/turno?token=` | El link de los emails: ver el turno, confirmar que va, cambiar día u horario o cancelar, dentro del plazo. `&accion=` abre directo la acción |
+| `/mis-turnos` | Con cuenta: próximos y anteriores en todos los negocios, "Repetir mi última reserva" y "Reservar de nuevo" |
+| `/ingresar`, `/registro`, `/verificar-email`, `/acceso` | Cuenta: ingresar con contraseña o con un link por email, crear cuenta y los links de los emails |
+
+Endpoints que se sumaron para el sitio:
+
+| Endpoint | Para qué | Quién |
+|---|---|---|
+| `GET /api/public/businesses?q=&page=&size=` | Buscador (páginas de 20; `hasMore` dice si hay más) | Público |
+| `GET /api/public/businesses/{slug}/professionals` y `/{id}` | Profesionales con perfil, sucursales y precios | Público |
+| `GET` · `PUT /api/businesses/{id}/barbers/{barberId}/profile` | Perfil público: descripción, hasta 6 especialidades y la foto como link https | El profesional, su gerente o el dueño |
+| `GET /api/me/appointments` | Mis últimos 50 turnos como cliente, en todos los negocios | Con sesión |
 
 ## Notificaciones
 
