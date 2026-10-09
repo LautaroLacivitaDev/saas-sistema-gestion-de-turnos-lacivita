@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { messages } from "@/messages/es-AR";
 
@@ -19,13 +19,21 @@ export const metadata: Metadata = {
   description: messages.app.description,
 };
 
+// Mobile first: la mayoría entra desde el celular. No se bloquea el zoom (accesibilidad) y
+// "cover" deja usar toda la pantalla; el contenido respeta las zonas seguras con env(safe-area-inset-*).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es-AR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">{children}</body>
     </html>
   );
 }
