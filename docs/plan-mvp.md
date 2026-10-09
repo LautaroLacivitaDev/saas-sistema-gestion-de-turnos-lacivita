@@ -13,9 +13,11 @@ Plan aprobado el 2026-10-08. El estado de cada hito se actualiza al cerrarlo; el
 | 5 | **Agenda y disponibilidad** | Horarios por barbero y sucursal sin superposición, descansos, bloqueos, feriados y tiempo de preparación. Cálculo de disponibilidad probado con cambios de horario. Restricción de exclusión y prueba de reservas simultáneas. | Pendiente |
 | 6 | **Reservas** | Flujo con bloqueo `HOLD`, "cualquiera disponible", reserva como invitado con código por email y Turnstile, estados, cancelación y reprogramación por link firmado, carga manual y copia del precio al reservar. | Pendiente |
 | 7 | **Notificaciones** | Outbox transaccional, envío con reintentos (JobRunr), recordatorios que se reprograman, plantillas Thymeleaf editables, `.ics`, registro de envíos y avisos en la app. | Pendiente |
-| 8 | **Frontend público** | Buscador tolerante a errores y tildes, página `/{slug}` con renderizado en servidor, Open Graph, datos estructurados y QR, flujo de reserva mobile first, historial y "repetir última reserva". | Pendiente |
-| 9 | **Frontend del panel** | Agenda por día y semana, por profesional y sucursal. Gestión de catálogo, equipo, sucursales, horarios y clientes. Onboarding guiado. | Pendiente |
-| 10 | **Endurecimiento** | Playwright de punta a punta, k6 sobre el mismo horario, observabilidad, revisión de seguridad y aislamiento, PWA. | Pendiente |
+| 8 | **Frontend público** | Buscador tolerante a errores y tildes, página `/{slug}` con renderizado en servidor, Open Graph, datos estructurados y QR, flujo de reserva mobile first (probado a 320 y 375 px, acción principal al alcance del pulgar), historial y "repetir última reserva". | Pendiente |
+| 9 | **Frontend del panel** | Panel usable desde el celular: agenda por día en el teléfono y por semana desde tablet, por profesional y sucursal; listas o tarjetas en lugar de tablas en pantalla chica. Gestión de catálogo, equipo, sucursales, horarios y clientes. Onboarding guiado. | Pendiente |
+| 10 | **Endurecimiento** | Playwright de punta a punta en viewport de celular y de escritorio, k6 sobre el mismo horario, observabilidad, revisión de seguridad y aislamiento, PWA. | Pendiente |
+
+La app se usa sobre todo desde el celular: un hito con pantallas se cierra recién después de probarlas en celular (320 y 375 px) y en escritorio. Las reglas están en [AGENTS.md](../AGENTS.md), sección "Mobile first".
 
 ## Riesgos identificados
 

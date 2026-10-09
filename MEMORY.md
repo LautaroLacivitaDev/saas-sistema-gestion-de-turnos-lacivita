@@ -6,6 +6,8 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - Hitos 1, 2 y 3 terminados (2026-10-08). Hito 3: negocios, slug con redirección, sucursales,
   equipo con invitaciones, RLS, auditoría y acceso de soporte del ADMIN. 180 pruebas OK y
   probado contra Docker.
+- **Mobile first**: la app se usa sobre todo desde el celular. Reglas en AGENTS.md; cada pantalla
+  se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
 - Login con Google probado solo con proveedor simulado; falta Google real (perfil `google`).
 - Próximo: Hito 4, catálogo.
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
@@ -35,6 +37,7 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - `csrf()` de Spring Security Test cambia el filtro del contexto compartido: usar `SpaCsrf`.
 - Spring ya no copia el mensaje de PostgreSQL en la excepción: mirar `rootCause()`.
 - En pruebas, las colecciones lazy se leen dentro de `TransactionTemplate`.
+- Si un cambio de CSS no se ve en `npm run dev`, borrar `.next/` (caché de Turbopack).
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
 - En Windows, git no marca `mvnw` como ejecutable: `git update-index --chmod=+x`.
 ## Próximos pasos

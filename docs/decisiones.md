@@ -103,3 +103,12 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | El acceso de un ADMIN a un negocio exige el encabezado `X-Support-Reason`, se audita una vez por solicitud y lo ve el dueño | Soporte transparente: el dueño sabe quién entró y por qué |
 | `@Version` como `Long` (nulo hasta el primer guardado) en las entidades con id propio | Con `long` Spring Data creía que un negocio nuevo ya existía y hacía `merge` en vez de `persist` |
 | Las pruebas mandan el CSRF como el navegador (`SpaCsrf`: cookie más encabezado) en lugar de `csrf()` de Spring Security Test | `csrf()` reemplaza el repositorio CSRF del contexto compartido y rompía otras pruebas según el orden |
+
+## Mobile first (2026-10-08)
+
+| Decisión | Por qué |
+|---|---|
+| La app se diseña primero para el celular (360 px) y escala a tablet y escritorio. Reglas en AGENTS.md, sección "Mobile first" | Lautaro: la mayoría de clientes, barberos y dueños la van a usar desde el teléfono |
+| Toda pantalla nueva se prueba a 320 y 375 px y en escritorio antes de cerrar un hito | Es parte de la definición de "terminado", no un retoque al final |
+| Viewport explícito con `viewport-fit=cover`, zonas seguras del notch con `env(safe-area-inset-*)`, alturas con `dvh` y sin bloquear el zoom | Aprovecha toda la pantalla en celulares con notch sin perder accesibilidad |
+| Se corrigió `--font-sans`, que el tema de shadcn dejaba apuntando a sí mismo (la app salía en Times) | Se vio al revisar la pantalla en tamaño celular |

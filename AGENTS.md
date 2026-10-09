@@ -10,6 +10,7 @@ Instrucciones para cualquier agente de IA (Claude Code, Codex, Cursor, etc.) que
 - Plan de hitos y su estado: [docs/plan-mvp.md](docs/plan-mvp.md)
 - Registro completo de decisiones: [docs/decisiones.md](docs/decisiones.md)
 - Estado actual y aprendizajes: [MEMORY.md](MEMORY.md)
+- Uso principal: **desde el celular**. Todo es mobile first (ver "Mobile first" más abajo).
 - Alcance actual: **solo Fase 1 (MVP)**. No implementar pagos, WhatsApp, campañas, comisiones, caja, inventario, reseñas, lista de espera, turnos recurrentes, planes SaaS, dominio propio ni rol de recepción.
 
 ## Forma de trabajo esperada
@@ -62,6 +63,18 @@ Trabajá como un **desarrollador senior** en un proyecto que tiene que **escalar
 - Listados siempre paginados. Evitar N+1 con consultas específicas o *fetch joins*. Cada consulta frecuente tiene su índice, creado en una migración.
 - Caché solo para datos que cambian poco y con una regla clara de invalidación.
 - Lo que no necesita respuesta inmediata (emails, recordatorios) se procesa de forma asíncrona con reintentos.
+
+### Mobile first (la app se usa sobre todo desde el celular)
+
+Clientes, barberos y dueños entran mayormente desde el teléfono. Todo lo que se haga tiene que funcionar primero en una pantalla chica y después escalar a tablet y escritorio.
+
+- **Diseñar desde 360 px:** los estilos base son los del celular y los prefijos `sm:`, `md:`, `lg:` agregan lo de pantallas grandes, nunca al revés. Probar siempre a **320, 375 y escritorio**: sin scroll horizontal ni texto cortado.
+- **Táctil:** zonas tocables de al menos 44 × 44 px con espacio entre sí. Nada que dependa del *hover*. La acción principal de cada pantalla, abajo y al alcance del pulgar (por ejemplo, "Reservar" fija al pie).
+- **Formularios:** inputs con letra de 16 px o más (si no, iOS hace zoom), el `type`, `inputMode` y `autoComplete` que correspondan (teléfono con teclado numérico, email, nombre) y los mínimos campos posibles.
+- **Pantalla:** usar `dvh` (no `vh`) para alturas completas y respetar las zonas seguras del notch con `env(safe-area-inset-*)` (ya configurado en el layout). Nunca bloquear el zoom.
+- **Contenido:** una columna en el celular. Las tablas del panel se muestran como listas o tarjetas en pantalla chica. Agendas y calendarios: vista de día en el celular, semana desde tablet.
+- **Rendimiento en datos móviles:** imágenes con `next/image` y tamaños responsivos, poco JavaScript en el cliente (Server Components por defecto) y la página pública renderizada en el servidor.
+- **API pensada para el celular:** respuestas chicas y paginadas, con lo justo para cada pantalla, para que cargue rápido con 4G.
 
 ### Pruebas como parte del diseño
 
@@ -158,7 +171,7 @@ Reglas:
 ## Forma de trabajo
 
 
-1. Un hito está terminado cuando: compila, pasan todas las pruebas (backend y frontend), no hay violaciones de límites entre módulos, los permisos están probados por rol, las migraciones son reproducibles y la documentación está actualizada.
+1. Un hito está terminado cuando: compila, pasan todas las pruebas (backend y frontend), no hay violaciones de límites entre módulos, los permisos están probados por rol, las migraciones son reproducibles, toda pantalla nueva se probó en celular (320 y 375 px) y en escritorio, y la documentación está actualizada.
 2. Al cerrar un hito: resumir qué quedó hecho, cómo probarlo y qué decisiones se tomaron, y actualizar [MEMORY.md](MEMORY.md), el estado en [docs/plan-mvp.md](docs/plan-mvp.md), [docs/decisiones.md](docs/decisiones.md) y la tabla de comandos de este archivo.
 3. No cambiar el stack sin consultar.
 4. Al terminar, resume qué has cambiado y cualquier decisión que deba revisar.
