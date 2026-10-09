@@ -1,5 +1,6 @@
 package com.lacivita.turnos.business.application;
 
+import com.lacivita.turnos.business.BranchSummary;
 import com.lacivita.turnos.business.BusinessDirectory;
 import com.lacivita.turnos.business.BusinessSummary;
 import com.lacivita.turnos.business.domain.BranchRepository;
@@ -58,6 +59,17 @@ class BusinessDirectoryService implements BusinessDirectory, BranchLocator {
         return slugClaims
                 .findBusinessBySlug(slug.strip().toLowerCase(Locale.ROOT))
                 .map(mapper::toSummary);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<BranchSummary> branch(UUID businessId, UUID branchId) {
+        return branches.findByIdAndBusinessId(branchId, businessId)
+                .map(branch -> new BranchSummary(
+                        branch.getId(),
+                        branch.getBusinessId(),
+                        branch.details().name(),
+                        branch.details().timeZone()));
     }
 
     @Override
