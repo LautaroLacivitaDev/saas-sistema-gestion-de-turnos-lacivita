@@ -137,3 +137,25 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | Los casos de uso del catálogo usan `@Component` en lugar de `@Service` | La entidad del glosario se llama `Service` y chocaría con la anotación |
 | El perfil público del profesional (foto, descripción, especialidades) pasa al Hito 8 | Necesita la carga de imágenes, que llega con el frontend público |
 | Todavía no hay una API de cotización para reservas | La va a usar el Hito 6; el cálculo ya está en el dominio (`Terms`, `Combo.termsFrom`) |
+
+## Hito 5: agenda y disponibilidad (2026-10-08)
+
+| Decisión | Por qué |
+|---|---|
+| Módulo `schedule`: horario de atención de la sucursal, horario de cada profesional en cada sucursal, feriados, bloqueos y reglas del negocio | Sigue el modelo de datos de la especificación (`Availability`, `TimeBlock`) |
+| Los horarios semanales se reemplazan enteros y el descanso es el hueco entre dos franjas (9 a 13 y 14 a 19) | Una sola regla (las franjas de un día no se superponen), sin descansos que queden fuera del horario |
+| Franjas de a 5 minutos, sin cruzar la medianoche (la última termina 23:55) | Horarios prolijos; ninguna barbería atiende de un día al otro |
+| Un profesional no trabaja a la misma hora en dos sucursales: restricción de exclusión `work_shift_no_overlap` (tipo `timerange` propio), con prueba de dos guardados simultáneos | La base lo garantiza aunque dos personas guarden a la vez |
+| La restricción de exclusión **de turnos** y la prueba de reservas simultáneas pasan al Hito 6 | La tabla de turnos nace con las reservas; crearla antes sería código sin uso |
+| La disponibilidad cruza el horario del profesional con el de la sucursal (no se valida al guardar) | Si la sucursal cambia su horario después, la disponibilidad sigue siendo correcta sin tocar los horarios de cada barbero |
+| Los turnos tomados llegan por la interfaz `BookedTimes`, que va a implementar `booking` | La agenda no depende de las reservas; las reservas sí dependen de la agenda |
+| El tiempo de preparación se deja libre antes y después de cada turno; los bloqueos no lo llevan | Es tiempo de limpieza entre clientes, no entre un cliente y un trámite |
+| Reglas por defecto: sin preparación, anticipación mínima de 1 hora, máxima de 60 días y horarios cada 15 minutos. Solo el dueño las cambia | Los ejemplos de la especificación; son políticas del negocio |
+| Horarios se arman en hora local y se pasan a instantes con la zona de la sucursal: una hora que no existe (adelanto de reloj) no se ofrece y una que se repite (atraso) se ofrece dos veces | Son las horas reales en que el profesional está; probado con la zona de Madrid |
+| Feriados de una sucursal (su gerente o el dueño) o de todo el negocio (solo el dueño). Un solo feriado por día y sucursal | Los feriados nacionales valen para todas las sucursales; los locales, para una |
+| Bloqueos de un profesional (vacaciones, trámite) o de una sucursal entera, de hasta un año | Lo que pide la especificación ("barbero o sucursal") |
+| El gerente gestiona el horario de un barbero **en su sucursal**, aunque el barbero también trabaje en otras. Para bloqueos del barbero (sin sucursal) tiene que cubrir todas sus sucursales | El horario es por sucursal; un bloqueo afecta todas |
+| "Cualquiera disponible": cada horario trae los profesionales libres con su precio y duración propios | El cliente ve el precio exacto de quien lo atiende, como pide la especificación |
+| `catalog` ofrece `ServiceQuotes` (precio y duración de un servicio o combo con un profesional) y `business`, `BranchSummary` con la zona horaria | La agenda los necesita sin tocar tablas de otro módulo; las reservas los van a reutilizar |
+| Quien deja el equipo pierde su horario y sus bloqueos (evento `MemberLeft`) | Que no aparezca en la disponibilidad |
+| La disponibilidad pública no tiene límite de pedidos por ahora | Se revisa en el Hito 10 (endurecimiento) con datos reales de uso |

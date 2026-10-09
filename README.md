@@ -152,6 +152,26 @@ Servicios del negocio (compartidos por todas las sucursales), combos y lo que ha
 
 Si un barbero elige un precio fuera del rango, la respuesta trae `"outcome": "AWAITING_APPROVAL"` y sigue rigiendo su precio anterior hasta que un gerente lo apruebe. Los cambios de servicios y precios quedan en el registro de cambios del negocio.
 
+## Agenda y disponibilidad
+
+Horarios de atención de cada sucursal, horario de cada profesional en cada sucursal, feriados, bloqueos y el cálculo de horarios libres. Las horas van en la hora local de la sucursal (`HH:mm`); los instantes, en UTC (ISO 8601). Las rutas de la tabla cuelgan de `/api/businesses/{id}`, salvo las públicas.
+
+| Endpoint | Para qué | Quién |
+|---|---|---|
+| `GET` · `PUT /branches/{branchId}/hours` | Horario de atención semanal de la sucursal. Se reemplaza entero; los días que no se mandan quedan cerrados | Ver: todos. Cambiar: gerentes de la sucursal y dueño |
+| `GET /barbers/{userId}/schedule` | Horario de un profesional en cada una de sus sucursales | Todo el equipo |
+| `PUT /barbers/{userId}/schedule/{branchId}` | Horario semanal del profesional en una sucursal. El descanso es el hueco entre dos franjas. No se puede superponer con su horario en otra sucursal (409 `schedule_overlap`) | Cada uno el suyo; gerente, los barberos de su sucursal; dueño, todos |
+| `GET /holidays?from=&to=` · `POST /holidays` · `DELETE /holidays/{id}` | Feriados cargados a mano, de una sucursal o (sin `branchId`) de todo el negocio | Ver: todos. Sucursal: su gerente o el dueño. Todo el negocio: el dueño |
+| `GET /time-blocks?from=&to=` | Bloqueos que se cruzan con el período | Todo el equipo |
+| `POST /barbers/{userId}/time-blocks` | Bloquea a un profesional (trámite, vacaciones) | Cada uno los suyos; gerente, los barberos de sus sucursales; dueño, todos |
+| `POST /branches/{branchId}/time-blocks` | Bloquea una sucursal entera (capacitación, refacción) | Gerentes de la sucursal y dueño |
+| `DELETE /time-blocks/{id}` | Quita un bloqueo | Quien puede crearlo |
+| `GET` · `PUT /schedule-rules` | Tiempo de preparación entre turnos, anticipación mínima (minutos) y máxima (días), cada cuántos minutos se ofrecen horarios | Ver: todos. Cambiar: el dueño |
+| `GET /api/public/businesses/{slug}/branches/{branchId}/hours` | Horario de atención de la sucursal | Sin sesión |
+| `GET /api/public/businesses/{slug}/availability?branchId=&date=&serviceId=` (o `comboId=`, y opcional `barberId=`) | Horarios libres de un día. Sin `barberId` es "cualquiera disponible": cada horario trae los profesionales libres con su precio y su duración | Sin sesión |
+
+Un horario se ofrece si el profesional trabaja y la sucursal atiende, no es feriado, no hay un bloqueo ni un turno (más el tiempo de preparación) y respeta la anticipación. Los horarios se calculan en la zona de la sucursal, incluidos los cambios de horario de verano.
+
 ## Pruebas
 
 ```bash
