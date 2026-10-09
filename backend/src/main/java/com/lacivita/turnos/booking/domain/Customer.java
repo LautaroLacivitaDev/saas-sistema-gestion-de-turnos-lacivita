@@ -39,6 +39,10 @@ public class Customer {
 
     private PhoneNumber phone;
 
+    private String notes;
+
+    private String preferences;
+
     private Instant createdAt;
 
     private Instant updatedAt;
@@ -73,6 +77,28 @@ public class Customer {
             this.phone = contact.phone();
         }
         this.updatedAt = now;
+    }
+
+    /**
+     * El equipo corrige el contacto (por ejemplo, un teléfono mal cargado). A diferencia de {@link #refresh},
+     * reemplaza todo: un dato que falta se borra.
+     */
+    public void correct(Contact contact, Instant now) {
+        apply(contact, now);
+    }
+
+    public void annotate(CustomerNotes customerNotes, Instant now) {
+        this.notes = customerNotes.notes();
+        this.preferences = customerNotes.preferences();
+        this.updatedAt = now;
+    }
+
+    public CustomerNotes notes() {
+        return new CustomerNotes(notes, preferences);
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     /** Vincula al cliente con la cuenta con la que reservó. */

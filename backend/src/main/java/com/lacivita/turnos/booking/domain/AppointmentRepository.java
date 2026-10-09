@@ -101,6 +101,17 @@ public interface AppointmentRepository extends Repository<Appointment, UUID> {
         UUID getAppointmentId();
     }
 
+    /** Historial de un cliente, del turno más nuevo al más viejo. */
+    @Query("""
+            select a from Appointment a
+            where a.customerId = :customerId and a.status in :statuses
+            order by a.startsAt desc
+            """)
+    List<Appointment> findHistoryOf(
+            @Param("customerId") UUID customerId,
+            @Param("statuses") Collection<AppointmentStatus> statuses,
+            Limit limit);
+
     default Appointment require(UUID id) {
         return findById(id).orElseThrow(AppointmentNotFoundException::new);
     }

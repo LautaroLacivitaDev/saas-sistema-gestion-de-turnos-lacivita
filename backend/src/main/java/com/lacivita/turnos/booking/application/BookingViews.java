@@ -15,6 +15,32 @@ public final class BookingViews {
 
     public record CustomerView(UUID id, String name, String email, String phone) {}
 
+    /**
+     * Un cliente en el listado del panel.
+     *
+     * @param appointments cuántos turnos tuvo (sin contar los horarios que no se confirmaron)
+     * @param lastAppointmentAt su turno más reciente, pasado o próximo; nulo si nunca tuvo
+     */
+    public record CustomerSummaryView(
+            UUID id, String name, String email, String phone, long appointments, Instant lastAppointmentAt) {}
+
+    /**
+     * Ficha de un cliente: contacto, lo que anotó el equipo y su historial.
+     *
+     * @param hasAccount {@code true} si reservó con una cuenta de Laciturnos
+     * @param history sus últimos turnos, del más nuevo al más viejo
+     */
+    public record CustomerDetailView(
+            UUID id,
+            String name,
+            String email,
+            String phone,
+            String notes,
+            String preferences,
+            boolean hasAccount,
+            Instant createdAt,
+            List<AppointmentView> history) {}
+
     /** Horario reservado unos minutos mientras el cliente completa sus datos. */
     public record HoldView(
             UUID holdId,
