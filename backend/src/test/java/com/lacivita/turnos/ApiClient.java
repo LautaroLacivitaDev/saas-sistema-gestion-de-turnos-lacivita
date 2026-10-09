@@ -71,6 +71,21 @@ public class ApiClient {
         return UUID.fromString(read(result, "$.id"));
     }
 
+    /** Registra a una persona y la suma al equipo del negocio con una invitación aceptada. */
+    public Session joinTeam(
+            Session owner, UUID businessId, String role, UUID branchId, RecordingMailer mailer, String name) {
+        var person = registerNewUser(name);
+        requireStatus(
+                post(owner, "/api/businesses/" + businessId + "/invitations", """
+                        {"email":"%s","role":"%s","branchIds":["%s"]}""".formatted(
+                                person.email(), role, branchId)),
+                HttpStatus.CREATED);
+        String token = mailer.lastTokenSentTo(person.email()).orElseThrow();
+        requireStatus(post(person, "/api/invitations/accept", """
+                {"token":"%s"}""".formatted(token)), HttpStatus.OK);
+        return person;
+    }
+
     public MvcTestResult get(Session session, String uri) {
         return withSession(mvc.get().uri(uri), session).exchange();
     }
