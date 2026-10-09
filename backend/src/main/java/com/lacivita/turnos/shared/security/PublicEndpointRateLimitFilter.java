@@ -11,8 +11,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
@@ -26,8 +28,8 @@ class PublicEndpointRateLimitFilter extends OncePerRequestFilter {
 
     private static final Duration WINDOW = Duration.ofMinutes(1);
 
-    /** Claves "MÉTODO ruta" de los endpoints limitados. */
-    private final Set<String> limitedEndpoints;
+    /** Endpoints limitados. Las rutas pueden tener comodines (un asterisco por segmento). */
+    private final List<LimitedEndpoint> limitedEndpoints;
 
     private final int requestsPerMinute;
     private final HandlerExceptionResolver exceptionResolver;
@@ -40,21 +42,23 @@ class PublicEndpointRateLimitFilter extends OncePerRequestFilter {
             Collection<PublicEndpoint> endpoints, int requestsPerMinute, HandlerExceptionResolver exceptionResolver) {
         this.limitedEndpoints = endpoints.stream()
                 .filter(PublicEndpoint::rateLimited)
-                .map(endpoint -> key(endpoint.method().name(), endpoint.path()))
-                .collect(Collectors.toUnmodifiableSet());
+                .map(LimitedEndpoint::of)
+                .toList();
         this.requestsPerMinute = requestsPerMinute;
         this.exceptionResolver = exceptionResolver;
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !limitedEndpoints.contains(key(request.getMethod(), request.getRequestURI()));
+        return matching(request).isEmpty();
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        var bucket = buckets.get(request.getRemoteAddr() + "|" + request.getRequestURI(), key -> newBucket());
+        // Un contador por IP y endpoint (no por URL): pedir códigos para muchos turnos distintos también cuenta.
+        var endpoint = matching(request).orElseThrow();
+        var bucket = buckets.get(request.getRemoteAddr() + "|" + endpoint.key(), key -> newBucket());
         var probe = bucket.tryConsumeAndReturnRemaining(1);
         if (probe.isConsumed()) {
             chain.doFilter(request, response);
@@ -73,7 +77,18 @@ class PublicEndpointRateLimitFilter extends OncePerRequestFilter {
                 .build();
     }
 
-    private static String key(String method, String path) {
-        return method + " " + path;
+    private Optional<LimitedEndpoint> matching(HttpServletRequest request) {
+        return limitedEndpoints.stream()
+                .filter(endpoint -> endpoint.matcher().matches(request))
+                .findFirst();
+    }
+
+    private record LimitedEndpoint(String key, RequestMatcher matcher) {
+
+        static LimitedEndpoint of(PublicEndpoint endpoint) {
+            return new LimitedEndpoint(
+                    endpoint.method().name() + " " + endpoint.path(),
+                    PathPatternRequestMatcher.withDefaults().matcher(endpoint.method(), endpoint.path()));
+        }
     }
 }

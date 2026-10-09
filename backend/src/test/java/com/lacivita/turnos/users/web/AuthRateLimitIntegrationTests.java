@@ -4,6 +4,7 @@ import static com.lacivita.turnos.SpaCsrf.spaCsrf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lacivita.turnos.IntegrationTest;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,30 @@ class AuthRateLimitIntegrationTests {
         }
 
         assertThat(attemptLogin("10.0.0.3")).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void endpointsWithVariablePartsShareOneCounterPerAddress() {
+        // Probar códigos en muchos turnos distintos cuenta como el mismo endpoint.
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            assertThat(confirmSomeHold("10.0.0.4")).hasStatus(HttpStatus.NOT_FOUND);
+        }
+
+        assertThat(confirmSomeHold("10.0.0.4")).hasStatus(HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    private MvcTestResult confirmSomeHold(String remoteAddress) {
+        return mvc.post()
+                .uri("/api/public/businesses/no-existe/holds/" + UUID.randomUUID() + "/confirm")
+                .with(request -> {
+                    request.setRemoteAddr(remoteAddress);
+                    return request;
+                })
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"code":"123456"}""")
+                .with(spaCsrf())
+                .exchange();
     }
 
     private MvcTestResult attemptLogin(String remoteAddress) {
