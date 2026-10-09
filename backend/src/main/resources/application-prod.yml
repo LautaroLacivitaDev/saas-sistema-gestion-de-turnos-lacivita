@@ -10,11 +10,18 @@ spring:
     password: ${FLYWAY_PASSWORD}
     placeholders:
       app_role: ${DATABASE_USERNAME}
+  # Emails por SMTP de Resend (proveedor transaccional): el usuario es siempre "resend" y la
+  # contraseña, una API key. Para usar otro proveedor alcanza con cambiar MAIL_HOST y MAIL_USERNAME.
   mail:
-    host: ${MAIL_HOST}
+    host: ${MAIL_HOST:smtp.resend.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
+    username: ${MAIL_USERNAME:resend}
     password: ${MAIL_PASSWORD}
+    properties:
+      # Cifrado obligatorio: sin TLS no se manda nada (ni la API key).
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
 
 server:
   # Detrás del proxy inverso: toma la IP real y el esquema de los encabezados X-Forwarded-*.

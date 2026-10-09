@@ -47,4 +47,4 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
 ## Próximos pasos
 - Lautaro: crear las credenciales OAuth de Google y probar el login real.
-- Lautaro: elegir proveedor de email para producción (Resend o SES; da el estado "entregado").
+- Emails de producción por Resend (SMTP, ya configurado). Lautaro: cuenta, dominio verificado y API key.

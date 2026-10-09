@@ -241,6 +241,23 @@ Rutas bajo `/api/businesses/{id}`:
 
 Los textos aceptan las variables `{nombre}`, `{servicio}`, `{barbero}`, `{sucursal}`, `{direccion}`, `{hora}` y `{negocio}`. El diseño del email, los datos del turno y los botones son fijos: el negocio escribe texto, no HTML.
 
+### Emails en producción (Resend)
+
+En producción los emails salen por [Resend](https://resend.com), por SMTP. Para configurarlo:
+
+1. Crear una cuenta en Resend.
+2. En **Domains**, agregar el dominio desde el que salen los emails (por ejemplo `laciturnos.com.ar`) y cargar en el DNS del dominio los registros que indica Resend (SPF y DKIM). Esperar a que figure como verificado.
+3. En **API Keys**, crear una clave con permiso **Sending access**, limitada a ese dominio.
+4. Configurar las variables de entorno del servidor:
+
+| Variable | Valor |
+|---|---|
+| `MAIL_PASSWORD` | La API key de Resend (empieza con `re_`). Es secreta: nunca va en el repositorio |
+| `MAIL_FROM` | Una dirección del dominio verificado, por ejemplo `turnos@laciturnos.com.ar` |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` | Opcionales: por defecto `smtp.resend.com`, `587` y `resend` |
+
+La conexión exige TLS. El registro de envíos marca `SENT` cuando Resend acepta el email; el estado "entregado" requiere sumar los webhooks de Resend.
+
 Las tablas de JobRunr las crea Flyway (`V14`). Al actualizar JobRunr, revisar si trae migraciones nuevas y agregarlas en una migración propia.
 
 ## Pruebas
