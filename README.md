@@ -182,17 +182,18 @@ En tres pasos, desde la página pública del negocio (`/api/public/businesses/{s
 |---|---|
 | `POST /holds` | Reserva el horario 5 minutos (`serviceId` o `comboId`, `branchId`, `startsAt` y opcional `barberId`; sin profesional, se asigna al libre con menos turnos ese día). 409 `slot_not_available` si ya no está libre |
 | `POST /holds/{holdId}/guest-code` | Invitados: guarda nombre, email y teléfono, verifica con Cloudflare Turnstile (`humanToken`) y manda un código de 6 dígitos por email |
-| `POST /holds/{holdId}/confirm` | Confirma con el `code` del email (5 intentos). Con sesión y email verificado no hace falta código. Llega por email el link para gestionar el turno |
+| `POST /holds/{holdId}/confirm` | Confirma con el `code` del email (5 intentos). Con sesión y email verificado no hace falta código. Llega un email de confirmación con el `.ics` y los botones para gestionar el turno |
 
 Los tres llevan límite de intentos por IP. El precio y la duración de cada servicio se copian en el turno: si después cambian, el turno no cambia.
 
 ### Link del cliente
 
-Sin sesión, con el token del link del email (va en el cuerpo, no en la URL):
+Sin sesión, con el token del link del email (va en el cuerpo, no en la URL). Cada email trae su propio link y todos siguen funcionando. Los botones del email abren `/turno?token=…&accion=confirmar|reprogramar|cancelar` en el frontend.
 
 | Endpoint | Para qué |
 |---|---|
 | `POST /api/public/appointments/lookup` | Muestra el turno y hasta cuándo se puede cambiar (`changeableUntil`) |
+| `POST /api/public/appointments/confirm` | El cliente confirma que va a un turno que el local cargó "a confirmar" |
 | `POST /api/public/appointments/cancel` | Cancela, dentro del plazo del negocio (422 `change_deadline_passed`) |
 | `POST /api/public/appointments/reschedule` | Pasa el turno a otro horario libre del mismo profesional, dentro del plazo |
 
@@ -213,6 +214,34 @@ Dos turnos activos del mismo profesional nunca se superponen: lo impide una rest
 ### Cloudflare Turnstile
 
 En desarrollo y en las pruebas está desactivado (la aplicación lo avisa en el log). En producción es obligatorio: configurá `TURNSTILE_SECRET_KEY` con la clave secreta del sitio; sin ella la aplicación no arranca.
+
+## Notificaciones
+
+Cada cambio en un turno deja sus avisos en una bandeja de salida (tabla `notification`) en la misma transacción: si el turno se guarda, el aviso también, y no se pierde aunque el envío falle.
+
+| Cambio | Cliente | Profesional |
+|---|---|---|
+| Turno reservado | Email con `.ics` y botones (confirmar si está "a confirmar", cambiar, cancelar) | Aviso en la app y email |
+| Recordatorio (24 y 2 horas antes, configurable) | Email con botones | Resumen de su agenda a las 7:00 del día |
+| Turno movido | Email con `.ics` nuevo; los recordatorios se reprograman | Aviso en la app y email (también a quien lo tenía antes) |
+| Turno cancelado | Email con `.ics` cancelado; los recordatorios se cancelan | Aviso en la app y email |
+
+A quien hizo el cambio no se le avisa. Los emails salen apenas se confirma el cambio; una tarea de JobRunr revisa cada minuto los recordatorios, los resúmenes y los reintentos (5 intentos: al momento y a los 1, 5, 15 y 60 minutos). En desarrollo, todos los emails llegan a Mailpit (http://localhost:8025).
+
+Rutas bajo `/api/businesses/{id}`:
+
+| Endpoint | Para qué | Quién |
+|---|---|---|
+| `GET /appointments/{id}/notifications` | Registro de envíos del turno: `PENDING`, `SENT`, `FAILED`, `CANCELLED` o `SKIPPED` (por ejemplo, el cliente no dejó email) | Quien ve el turno |
+| `GET /notices` · `GET /notices/unread-count` | Mis avisos en la app (paginados) y cuántos no leí | Todo el equipo |
+| `POST /notices/{id}/read` · `POST /notices/read-all` | Marca avisos como leídos | Cada uno, los suyos |
+| `GET` · `PUT /notification-settings` | Horas antes del turno en que se recuerda (`reminderHours`, hasta 3; vacío los desactiva) | Ver: todos. Cambiar: el dueño |
+| `GET /message-templates` | Textos de los emails al cliente y las variables disponibles | Gerentes y dueño |
+| `PUT` · `DELETE /message-templates/{type}` | Personaliza el asunto y el mensaje, o vuelve al texto de Laciturnos | El dueño |
+
+Los textos aceptan las variables `{nombre}`, `{servicio}`, `{barbero}`, `{sucursal}`, `{direccion}`, `{hora}` y `{negocio}`. El diseño del email, los datos del turno y los botones son fijos: el negocio escribe texto, no HTML.
+
+Las tablas de JobRunr las crea Flyway (`V14`). Al actualizar JobRunr, revisar si trae migraciones nuevas y agregarlas en una migración propia.
 
 ## Pruebas
 

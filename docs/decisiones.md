@@ -182,3 +182,28 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | El cliente es por negocio y se reconoce por cuenta, email o (si lo cargó el equipo) teléfono | Cada negocio tiene su base de clientes; quien vuelve no se duplica |
 | Emails de la reserva (código y confirmación con link) en texto plano y sin reintentos | Las notificaciones completas (plantillas, `.ics`, recordatorios, outbox) son el Hito 7 |
 | `catalog` cotiza con el detalle por servicio (`Quote.lines`), `users` informa si una cuenta tiene el email verificado y `BookedTimes` informa el id de cada turno | Lo que necesitan las reservas, sin tocar tablas de otros módulos; el id evita que un turno choque consigo mismo al reprogramarlo |
+
+## Hito 7: notificaciones (2026-10-09)
+
+| Decisión | Por qué |
+|---|---|
+| Bandeja de salida propia (tabla `notification`), escrita por eventos síncronos en la misma transacción que el turno. Es también el registro de envíos | Si el turno se guarda, el aviso también; nada se pierde si el proveedor de email falla |
+| Los cambios de los turnos pasan a ser eventos públicos de `booking` (`AppointmentBooked`, `AppointmentStatusChanged`, `AppointmentRescheduled`); `notifications` lee los datos con `AppointmentDirectory` | Las notificaciones reaccionan sin que las reservas sepan quién escucha |
+| JobRunr 8.8.2 (`jobrunr-spring-boot-4-starter`), no la 9.0 recién salida. Una tarea cada minuto envía lo pendiente; además se envía apenas se confirma el cambio | Compatible con Boot 4 y con algunas semanas de uso; la confirmación llega en segundos |
+| Recordatorios y resumen diario como filas con fecha de envío en la bandeja, no como tareas sueltas de JobRunr. Si el turno se mueve o se cancela, se cancelan y se crean otros en la misma transacción | Reprogramar es transaccional y queda a la vista en el registro del turno |
+| Las tablas de JobRunr las crea Flyway (`V14`, con su registro de migraciones) y JobRunr arranca con `skip-create` | La aplicación usa un rol sin permiso para crear tablas; todas las migraciones en un solo lugar |
+| Varios servidores pueden enviar a la vez: cada uno toma un lote con `FOR UPDATE SKIP LOCKED` y lo reserva 2 minutos | Escala sin enviar dos veces lo mismo |
+| El mensaje se arma al enviarlo, con los datos vigentes del turno; si ya no corresponde (por ejemplo, la confirmación de un turno cancelado) queda `SKIPPED` | El cliente nunca recibe información vieja |
+| 5 intentos (al momento y a los 1, 5, 15 y 60 minutos); después `FAILED` en el registro. Timeouts de SMTP de 10 segundos | Cubre caídas cortas del proveedor sin retener conexiones |
+| Sin estado "entregado": SMTP solo confirma que el proveedor aceptó el email | Llega con los webhooks del proveedor transaccional que se elija para producción |
+| El link del cliente pasa a una tabla (`appointment_link`, `V12`): cada email lleva un token nuevo, se guarda solo su hash y los anteriores siguen sirviendo | Los recordatorios necesitan un link y el token en claro no se guarda en ningún lado |
+| El negocio personaliza asunto y mensaje de los 4 emails al cliente, con variables entre llaves validadas al guardar. El diseño (Thymeleaf, solo `th:text`), los datos del turno y los botones son fijos | Permitir HTML o Thymeleaf abriría la puerta a inyección de plantillas y rompería los emails en el celular |
+| Diseño del email mobile first: una columna de hasta 560 px, letra de 16 px, botones de 44 px; con versión en texto plano | Probado a 320 y 375 px y en escritorio |
+| `.ics` con el mismo identificador por turno, `METHOD:PUBLISH` y la versión del turno como `SEQUENCE` | Al mover o cancelar, el calendario reemplaza el evento |
+| Recordatorios por defecto 24 y 2 horas antes; el dueño elige hasta 3 (1 a 168 horas) o ninguno. Rige para turnos que se reserven o se muevan desde el cambio | Lo que propone la especificación |
+| Resumen diario de agenda al profesional a las 7:00 de la sucursal, uno por día, solo si tiene turnos | "Resumen diario de agenda" de la especificación |
+| A quien hizo el cambio no se le avisa; no se implementan los avisos opcionales al gerente y al dueño | Evita ruido; el panel ya muestra la agenda completa |
+| El código del invitado y los emails de la cuenta siguen fuera de la bandeja de salida | Se esperan en el momento y vencen pronto; no se guardan tokens ni códigos en claro |
+| El cliente puede confirmar desde su link un turno "a confirmar" (`POST /api/public/appointments/confirm`) | El botón "Confirmar" que pide la especificación |
+| Limpieza de HOLD vencidos cada 10 minutos con JobRunr | Pendiente del Hito 6 |
+| En las pruebas: canal de email que guarda en memoria, reloj que se adelanta (`TestClock`) y envío manual con `NotificationDispatcher.dispatchDue()` | Se prueban recordatorios, reintentos y resúmenes sin esperar |
