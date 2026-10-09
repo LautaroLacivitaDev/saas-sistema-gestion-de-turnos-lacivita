@@ -33,7 +33,7 @@ public class PublicSchedule {
     public AvailabilityView availability(String slug, UUID branchId, BookableItem item, UUID barberId, LocalDate date) {
         var business = business(slug);
         var branch = businesses.branch(business.id(), branchId).orElseThrow(UnknownBranchException::new);
-        return availability.read(business.id(), branch, item, barberId, date);
+        return availability.read(business.id(), branch, item, barberId, date, null);
     }
 
     private BusinessSummary business(String slug) {

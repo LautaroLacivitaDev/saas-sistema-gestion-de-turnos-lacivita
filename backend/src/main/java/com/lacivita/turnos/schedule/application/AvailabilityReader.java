@@ -3,6 +3,7 @@ package com.lacivita.turnos.schedule.application;
 import com.lacivita.turnos.business.BranchSummary;
 import com.lacivita.turnos.catalog.BookableItem;
 import com.lacivita.turnos.catalog.ServiceQuotes;
+import com.lacivita.turnos.schedule.BookedTime;
 import com.lacivita.turnos.schedule.BookedTimes;
 import com.lacivita.turnos.schedule.application.ScheduleViews.AvailabilityView;
 import com.lacivita.turnos.schedule.application.ScheduleViews.SlotBarberView;
@@ -80,11 +81,19 @@ class AvailabilityReader {
         this.clock = clock;
     }
 
-    /** @param barberId un profesional en particular; {@code null} para "cualquiera disponible" */
+    /**
+     * @param barberId un profesional en particular; {@code null} para "cualquiera disponible"
+     * @param ignoringBooking turno que no cuenta como ocupado (el que se reprograma); puede ser {@code null}
+     */
     @BusinessScoped
     @Transactional(readOnly = true)
     public AvailabilityView read(
-            @BusinessId UUID businessId, BranchSummary branch, BookableItem item, UUID barberId, LocalDate date) {
+            @BusinessId UUID businessId,
+            BranchSummary branch,
+            BookableItem item,
+            UUID barberId,
+            LocalDate date,
+            UUID ignoringBooking) {
         var zone = branch.timeZone();
         var day = new TimeInterval(
                 date.atStartOfDay(zone).toInstant(),
@@ -115,7 +124,7 @@ class AvailabilityReader {
                         shiftsByBarber.get(barber.userId()),
                         holiday,
                         blocksAffecting(barber.userId(), branch.id(), day),
-                        booked(businessId, barber.userId(), day.widenedBy(rules.buffer())));
+                        booked(businessId, barber.userId(), day.widenedBy(rules.buffer()), ignoringBooking));
                 var offer = new SlotBarberView(
                         barber.userId(), barber.name(), quote.price().amount(), (int)
                                 quote.duration().toMinutes());
@@ -142,9 +151,11 @@ class AvailabilityReader {
                 .toList();
     }
 
-    private List<TimeInterval> booked(UUID businessId, UUID barberId, TimeInterval period) {
+    private List<TimeInterval> booked(UUID businessId, UUID barberId, TimeInterval period, UUID ignoring) {
         return bookedTimes.stream()
                 .flatMap(source -> source.of(businessId, barberId, period).stream())
+                .filter(booked -> !booked.bookingId().equals(ignoring))
+                .map(BookedTime::interval)
                 .toList();
     }
 }

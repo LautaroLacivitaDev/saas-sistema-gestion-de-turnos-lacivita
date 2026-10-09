@@ -11,5 +11,5 @@ import java.util.UUID;
 public interface BookedTimes {
 
     /** Turnos del profesional que se cruzan con el período. */
-    List<TimeInterval> of(UUID businessId, UUID barberId, TimeInterval period);
+    List<BookedTime> of(UUID businessId, UUID barberId, TimeInterval period);
 }
