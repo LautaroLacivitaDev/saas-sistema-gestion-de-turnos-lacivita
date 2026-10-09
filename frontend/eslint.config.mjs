@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Tipos generados desde el OpenAPI del backend (npm run api:types).
+    "src/lib/api/schema.d.ts",
   ]),
 ]);
 

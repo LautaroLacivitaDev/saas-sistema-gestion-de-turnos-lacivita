@@ -1,0 +1,44 @@
+import { describe, expect, it } from "vitest";
+
+import { addDays, dateTime, dayParts, initials, localDate, money, time } from "./format";
+
+describe("money", () => {
+  it("muestra pesos sin decimales cuando el importe es entero", () => {
+    expect(money(9000).replace(/\s/g, " ")).toBe("$ 9.000");
+  });
+
+  it("muestra los centavos cuando los hay", () => {
+    expect(money(9500.5).replace(/\s/g, " ")).toBe("$ 9.500,50");
+  });
+});
+
+describe("fechas", () => {
+  const ten = "2026-10-09T13:00:00Z";
+
+  it("muestra la hora de la sucursal, no la del celular", () => {
+    expect(time(ten, "America/Argentina/Buenos_Aires")).toBe("10:00");
+    expect(dateTime(ten, "America/Argentina/Buenos_Aires")).toBe("viernes 9 de octubre a las 10:00");
+  });
+
+  it("calcula el día local de un instante en una zona", () => {
+    const lateNight = new Date("2026-10-10T02:30:00Z");
+    expect(localDate(lateNight, "America/Argentina/Buenos_Aires")).toBe("2026-10-09");
+    expect(localDate(lateNight, "UTC")).toBe("2026-10-10");
+  });
+
+  it("suma días cruzando meses y años", () => {
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+  });
+
+  it("separa el día de la semana y el número para los botones", () => {
+    expect(dayParts("2026-10-09")).toEqual({ weekday: "vie", day: "9", month: "oct" });
+  });
+});
+
+describe("initials", () => {
+  it("usa la primera letra de las dos primeras palabras", () => {
+    expect(initials("juan pérez gómez")).toBe("JP");
+    expect(initials("Ana")).toBe("A");
+  });
+});

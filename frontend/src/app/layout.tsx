@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { SiteHeader } from "@/components/site-header";
+import { siteUrl } from "@/lib/site";
 import { messages } from "@/messages/es-AR";
 
+import { Providers } from "./providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,8 +19,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: messages.app.name,
+  metadataBase: new URL(siteUrl),
+  title: { default: messages.app.name, template: `%s · ${messages.app.name}` },
   description: messages.app.description,
+  openGraph: { siteName: messages.app.name, locale: "es_AR", type: "website" },
 };
 
 // Mobile first: la mayoría entra desde el celular. No se bloquea el zoom (accesibilidad) y
@@ -33,7 +39,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es-AR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">{children}</body>
+      <body className="flex min-h-dvh flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+        <Providers>
+          <SiteHeader />
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }
