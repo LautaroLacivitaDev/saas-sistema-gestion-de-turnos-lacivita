@@ -267,6 +267,11 @@ public class Appointment {
         return List.copyOf(lines);
     }
 
+    /** El combo reservado; vacío si se reservó un solo servicio. */
+    public Optional<UUID> comboId() {
+        return Optional.ofNullable(comboId);
+    }
+
     public Optional<UUID> customerId() {
         return Optional.ofNullable(customerId);
     }

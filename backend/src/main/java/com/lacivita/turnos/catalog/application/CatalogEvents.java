@@ -216,6 +216,35 @@ final class CatalogEvents {
         }
     }
 
+    /** Un profesional cambió su perfil público. Se guarda el texto nuevo, que es público. */
+    record ProfileChanged(UUID businessId, UUID barberId, String bio, List<String> specialties, String photoUrl)
+            implements CatalogEvent {
+
+        @Override
+        public String auditAction() {
+            return "catalog.profile_changed";
+        }
+
+        @Override
+        public String auditEntityType() {
+            return "BarberProfile";
+        }
+
+        @Override
+        public String auditEntityId() {
+            return barberId.toString();
+        }
+
+        @Override
+        public Optional<Object> auditAfter() {
+            var after = new HashMap<String, Object>();
+            after.put("bio", bio);
+            after.put("specialties", specialties);
+            after.put("photoUrl", photoUrl);
+            return Optional.of(after);
+        }
+    }
+
     record PriceRequested(UUID businessId, UUID offeringId, Money current, Money requested) implements OfferingEvent {
 
         @Override

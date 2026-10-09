@@ -12,6 +12,9 @@ class CatalogPublicEndpoints implements PublicEndpoints {
 
     @Override
     public List<PublicEndpoint> publicEndpoints() {
-        return List.of(PublicEndpoint.open(HttpMethod.GET, "/api/public/businesses/*/catalog"));
+        return List.of(
+                PublicEndpoint.open(HttpMethod.GET, "/api/public/businesses/*/catalog"),
+                PublicEndpoint.open(HttpMethod.GET, "/api/public/businesses/*/professionals"),
+                PublicEndpoint.open(HttpMethod.GET, "/api/public/businesses/*/professionals/*"));
     }
 }

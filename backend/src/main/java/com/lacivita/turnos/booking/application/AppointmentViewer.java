@@ -95,6 +95,7 @@ class AppointmentViewer {
                 interval.end(),
                 appointment.getTotalPrice().amount(),
                 lines(appointment),
+                appointment.comboId().orElse(null),
                 customer == null ? null : customer(customer));
     }
 

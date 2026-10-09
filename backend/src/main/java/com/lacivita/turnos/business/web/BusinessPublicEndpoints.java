@@ -12,6 +12,8 @@ class BusinessPublicEndpoints implements PublicEndpoints {
 
     @Override
     public List<PublicEndpoint> publicEndpoints() {
-        return List.of(PublicEndpoint.open(HttpMethod.GET, PublicBusinessController.BASE + "/*"));
+        return List.of(
+                PublicEndpoint.open(HttpMethod.GET, PublicBusinessController.BASE),
+                PublicEndpoint.open(HttpMethod.GET, PublicBusinessController.BASE + "/*"));
     }
 }

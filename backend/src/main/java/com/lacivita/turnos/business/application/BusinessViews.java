@@ -34,6 +34,16 @@ public final class BusinessViews {
             String canonicalSlug, String name, String category, String description, List<BranchView> branches) {}
 
     /**
+     * Un negocio en los resultados del buscador.
+     *
+     * @param places dónde atiende, por ejemplo "Palermo, CABA", sin repetir
+     */
+    public record SearchHitView(String name, String slug, String category, String description, List<String> places) {}
+
+    /** @param hasMore {@code true} si hay otra página */
+    public record SearchResultsView(List<SearchHitView> items, int page, boolean hasMore) {}
+
+    /**
      * Resultado de verificar un slug.
      *
      * @param code motivo si no está disponible: {@code invalid_slug}, {@code reserved_slug} o {@code

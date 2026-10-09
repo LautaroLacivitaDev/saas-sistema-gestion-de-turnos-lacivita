@@ -73,6 +73,7 @@ final class BookingResponses {
             Instant endsAt,
             BigDecimal totalPrice,
             List<Line> lines,
+            UUID comboId,
             Customer customer) {
 
         static Appointment from(AppointmentView view) {
@@ -89,6 +90,7 @@ final class BookingResponses {
                     view.endsAt(),
                     view.totalPrice(),
                     Line.from(view.lines()),
+                    view.comboId(),
                     Customer.from(view.customer()));
         }
     }

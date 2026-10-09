@@ -17,6 +17,9 @@ public interface BranchRepository extends Repository<Branch, UUID> {
     /** Un negocio tiene pocas sucursales: se listan completas, ordenadas por antigüedad. */
     List<Branch> findAllByBusinessIdOrderByCreatedAtAsc(UUID businessId);
 
+    /** Las sucursales de varios negocios a la vez (por ejemplo, para los resultados del buscador). */
+    List<Branch> findAllByBusinessIdInOrderByCreatedAtAsc(Collection<UUID> businessIds);
+
     @Query("select b.businessId from Branch b where b.id = :branchId")
     Optional<UUID> findBusinessIdById(@Param("branchId") UUID branchId);
 

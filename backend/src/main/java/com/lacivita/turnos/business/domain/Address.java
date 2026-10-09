@@ -25,6 +25,11 @@ public record Address(String street, String neighborhood, String city) {
         return neighborhood == null ? street + ", " + city : street + ", " + neighborhood + ", " + city;
     }
 
+    /** Barrio y ciudad, para mostrar dónde atiende: "Palermo, CABA" o, sin barrio, "CABA". */
+    public String place() {
+        return neighborhood == null ? city : neighborhood + ", " + city;
+    }
+
     private static String required(String value, int maxLength, String code, String label) {
         if (value == null || value.isBlank()) {
             throw new InvalidValueException(code, label + " es obligatoria.");

@@ -39,6 +39,7 @@ public record Slug(String value) {
             "login",
             "logout",
             "mail",
+            "mis-turnos",
             "negocios",
             "nosotros",
             "panel",
@@ -52,6 +53,7 @@ public record Slug(String value) {
             "static",
             "sucursales",
             "terminos",
+            "turno",
             "turnos",
             "verificar-email",
             "www");

@@ -84,4 +84,25 @@ public final class CatalogViews {
             UUID id, String name, List<UUID> serviceIds, BigDecimal fromPrice, List<BarberTermsView> barbers) {}
 
     public record PublicCatalogView(List<PublicServiceView> services, List<PublicComboView> combos) {}
+
+    /** Perfil de un profesional, tal como lo edita. */
+    public record ProfileView(String bio, List<String> specialties, String photoUrl) {}
+
+    /** Un servicio que hace un profesional, con su precio y su duración. */
+    public record ProfessionalServiceView(UUID serviceId, String name, BigDecimal price, int durationMinutes) {}
+
+    /**
+     * Un profesional en la página pública: quién es, dónde atiende y qué hace.
+     *
+     * @param branchIds sucursales donde atiende; vacío si atiende en todas (el dueño)
+     * @param services del más barato al más caro
+     */
+    public record ProfessionalView(
+            UUID barberId,
+            String name,
+            String bio,
+            List<String> specialties,
+            String photoUrl,
+            List<UUID> branchIds,
+            List<ProfessionalServiceView> services) {}
 }

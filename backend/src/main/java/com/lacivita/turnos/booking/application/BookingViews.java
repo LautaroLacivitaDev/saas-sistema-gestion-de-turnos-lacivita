@@ -46,7 +46,15 @@ public final class BookingViews {
             Instant endsAt,
             BigDecimal totalPrice,
             List<LineView> lines,
+            UUID comboId,
             CustomerView customer) {}
+
+    /**
+     * Un turno en el historial de una cuenta, con el negocio al que pertenece (para volver a reservar).
+     *
+     * @param slug link actual del negocio
+     */
+    public record AccountAppointmentView(String businessName, String slug, AppointmentView appointment) {}
 
     /**
      * Turno visto desde el link del cliente.

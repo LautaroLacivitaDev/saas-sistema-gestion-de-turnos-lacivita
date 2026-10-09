@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -20,6 +21,8 @@ public interface AppointmentRepository extends Repository<Appointment, UUID> {
     void flush();
 
     Optional<Appointment> findById(UUID id);
+
+    List<Appointment> findAllByIdIn(Collection<UUID> ids);
 
     /** Turnos que ocupan el horario del profesional en el período (los HOLD, solo si no vencieron). */
     @Query("""
@@ -76,6 +79,27 @@ public interface AppointmentRepository extends Repository<Appointment, UUID> {
             @Param("statuses") Collection<AppointmentStatus> statuses,
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+    /**
+     * Turnos de una cuenta como cliente, en todos los negocios, del más nuevo al más viejo. Se consulta como
+     * operación de sistema: cruza negocios.
+     */
+    @Query("""
+            select a.businessId as businessId, a.id as appointmentId from Appointment a
+            where a.customerId in (select c.id from Customer c where c.userId = :userId)
+              and a.status in :statuses
+            order by a.startsAt desc
+            """)
+    List<AccountAppointment> findForAccount(
+            @Param("userId") UUID userId, @Param("statuses") Collection<AppointmentStatus> statuses, Limit limit);
+
+    /** Un turno de una cuenta, con el negocio al que pertenece. */
+    interface AccountAppointment {
+
+        UUID getBusinessId();
+
+        UUID getAppointmentId();
+    }
 
     default Appointment require(UUID id) {
         return findById(id).orElseThrow(AppointmentNotFoundException::new);
