@@ -112,3 +112,4 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | Toda pantalla nueva se prueba a 320 y 375 px y en escritorio antes de cerrar un hito | Es parte de la definición de "terminado", no un retoque al final |
 | Viewport explícito con `viewport-fit=cover`, zonas seguras del notch con `env(safe-area-inset-*)`, alturas con `dvh` y sin bloquear el zoom | Aprovecha toda la pantalla en celulares con notch sin perder accesibilidad |
 | Se corrigió `--font-sans`, que el tema de shadcn dejaba apuntando a sí mismo (la app salía en Times) | Se vio al revisar la pantalla en tamaño celular |
+| Agenda del panel con selector "Día / Semana" en cualquier pantalla: por defecto Día en el celular (con flechas y tira de la semana) y Semana desde tablet. Lo eligió Lautaro | Siete columnas en 375 px no se leen ni se tocan bien; el selector deja ver la semana a quien la necesite |

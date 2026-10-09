@@ -72,7 +72,7 @@ Clientes, barberos y dueños entran mayormente desde el teléfono. Todo lo que s
 - **Táctil:** zonas tocables de al menos 44 × 44 px con espacio entre sí. Nada que dependa del *hover*. La acción principal de cada pantalla, abajo y al alcance del pulgar (por ejemplo, "Reservar" fija al pie).
 - **Formularios:** inputs con letra de 16 px o más (si no, iOS hace zoom), el `type`, `inputMode` y `autoComplete` que correspondan (teléfono con teclado numérico, email, nombre) y los mínimos campos posibles.
 - **Pantalla:** usar `dvh` (no `vh`) para alturas completas y respetar las zonas seguras del notch con `env(safe-area-inset-*)` (ya configurado en el layout). Nunca bloquear el zoom.
-- **Contenido:** una columna en el celular. Las tablas del panel se muestran como listas o tarjetas en pantalla chica. Agendas y calendarios: vista de día en el celular, semana desde tablet.
+- **Contenido:** una columna en el celular. Las tablas del panel se muestran como listas o tarjetas en pantalla chica. Agendas y calendarios: botón "Día / Semana" en cualquier pantalla; por defecto Día en el celular y Semana desde tablet.
 - **Rendimiento en datos móviles:** imágenes con `next/image` y tamaños responsivos, poco JavaScript en el cliente (Server Components por defecto) y la página pública renderizada en el servidor.
 - **API pensada para el celular:** respuestas chicas y paginadas, con lo justo para cada pantalla, para que cargue rápido con 4G.
 
