@@ -95,11 +95,11 @@ final class BookingResponses {
         }
     }
 
-    record ManagedAppointment(String businessName, Appointment appointment, Instant changeableUntil) {
+    record ManagedAppointment(String businessName, String slug, Appointment appointment, Instant changeableUntil) {
 
         static ManagedAppointment from(ManagedAppointmentView view) {
             return new ManagedAppointment(
-                    view.businessName(), Appointment.from(view.appointment()), view.changeableUntil());
+                    view.businessName(), view.slug(), Appointment.from(view.appointment()), view.changeableUntil());
         }
     }
 

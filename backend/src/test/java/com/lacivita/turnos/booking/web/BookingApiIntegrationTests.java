@@ -131,6 +131,10 @@ class BookingApiIntegrationTests {
                     .bodyJson()
                     .extractingPath("$.appointment.customer.email")
                     .isEqualTo(email);
+            assertThat(api.post(null, "/api/public/appointments/lookup", tokenJson(token)))
+                    .bodyJson()
+                    .extractingPath("$.slug")
+                    .isEqualTo(slug);
         }
 
         @Test

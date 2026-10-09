@@ -111,8 +111,10 @@ class CustomerChanges {
 
     private ManagedAppointmentView view(UUID businessId, Appointment appointment) {
         var notice = Duration.ofHours(settings.cancellationOf(businessId).noticeHours());
+        var business = businesses.find(businessId);
         return new ManagedAppointmentView(
-                businesses.find(businessId).map(BusinessSummary::name).orElse(""),
+                business.map(BusinessSummary::name).orElse(""),
+                business.map(BusinessSummary::slug).orElse(""),
                 viewer.view(businessId, appointment),
                 appointment.getStartsAt().minus(notice));
     }

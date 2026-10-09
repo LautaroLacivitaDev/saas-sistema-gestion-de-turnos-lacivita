@@ -59,9 +59,11 @@ public final class BookingViews {
     /**
      * Turno visto desde el link del cliente.
      *
+     * @param slug link actual del negocio, para buscar horarios o reservar otro turno
      * @param changeableUntil hasta cuándo puede cancelarlo o reprogramarlo por su cuenta
      */
-    public record ManagedAppointmentView(String businessName, AppointmentView appointment, Instant changeableUntil) {}
+    public record ManagedAppointmentView(
+            String businessName, String slug, AppointmentView appointment, Instant changeableUntil) {}
 
     public record SettingsView(int cancellationNoticeHours) {}
 }
