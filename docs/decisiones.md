@@ -208,3 +208,10 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | El cliente puede confirmar desde su link un turno "a confirmar" (`POST /api/public/appointments/confirm`) | El botón "Confirmar" que pide la especificación |
 | Limpieza de HOLD vencidos cada 10 minutos con JobRunr | Pendiente del Hito 6 |
 | En las pruebas: canal de email que guarda en memoria, reloj que se adelanta (`TestClock`) y envío manual con `NotificationDispatcher.dispatchDue()` | Se prueban recordatorios, reintentos y resúmenes sin esperar |
+
+## Rumbo del proyecto (2026-10-09)
+
+| Decisión | Por qué |
+|---|---|
+| Laciturnos se publica como proyecto de portfolio: en los subdominios gratuitos del hosting, sin dominio propio | No hace falta para mostrarlo; el dominio `laciturnos.com.ar` queda sin usar |
+| En el Hito 10 se suma un modo demo: un `NotificationChannel` que guarda los emails para verlos en la app en lugar de enviarlos, y datos de ejemplo | Quien prueba la app ve los emails (con `.ics` y botones) sin dejar su dirección. La configuración de Resend queda lista por si algún día se usa en serio |

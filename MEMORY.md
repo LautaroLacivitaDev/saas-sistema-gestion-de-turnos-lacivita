@@ -7,8 +7,9 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
   resumen diario, textos del negocio, .ics, avisos en la app). 330 pruebas OK y Docker.
 - **Mobile first**: la app se usa sobre todo desde el celular. Reglas en AGENTS.md; cada pantalla
   se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
-- Login con Google probado solo con proveedor simulado; falta Google real (perfil `google`).
+- Login con Google probado solo con proveedor simulado; para Google real faltan credenciales OAuth.
 - Próximo: Hito 8, frontend público (buscador, `/{slug}`, flujo de reserva, `/turno?token=`).
+- **Portfolio**: se publica en subdominios del hosting, sin dominio propio (ver Próximos pasos).
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
 ## Decisiones (y por qué)
 - Roles en dos niveles: Spring Security solo `ADMIN`/`USER`; `OWNER`/`MANAGER`/`BARBER` por
@@ -46,5 +47,4 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - Si un cambio de CSS no se ve en `npm run dev`, borrar `.next/` (caché de Turbopack).
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
 ## Próximos pasos
-- Lautaro: crear las credenciales OAuth de Google y probar el login real.
-- Emails de producción por Resend (SMTP, ya configurado). Lautaro: cuenta, dominio verificado y API key.
+- Proyecto de portfolio (2026-10-09): sin dominio propio; en Hito 10, modo demo de emails y datos de ejemplo.
