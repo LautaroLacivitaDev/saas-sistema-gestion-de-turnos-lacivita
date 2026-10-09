@@ -3,17 +3,17 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decisiones.md`.
 ## Estado actual
 - La app se llama **Laciturnos** (interfaz, emails, docs). Paquete, base y contenedores siguen `turnos`.
-- Hitos 1 a 5 terminados (2026-10-08). Hito 5: agenda (horarios de sucursal y de profesional,
-  feriados, bloqueos, reglas) y disponibilidad pública. 261 pruebas OK y probado contra Docker.
+- Hitos 1 a 6 terminados (2026-10-08). Hito 6: reservas (HOLD de 5 min, invitado con código y
+  Turnstile, link del cliente, agenda del equipo, exclusión de turnos). 292 pruebas OK y Docker.
 - **Mobile first**: la app se usa sobre todo desde el celular. Reglas en AGENTS.md; cada pantalla
   se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
 - Login con Google probado solo con proveedor simulado; falta Google real (perfil `google`).
-- Próximo: Hito 6, reservas (incluye la exclusión de turnos y la prueba de reservas simultáneas).
+- Próximo: Hito 7, notificaciones (outbox, JobRunr, plantillas, .ics, recordatorios).
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
 ## Decisiones (y por qué)
 - Roles en dos niveles: Spring Security solo `ADMIN`/`USER`; `OWNER`/`MANAGER`/`BARBER` por
   membresía, vía `BusinessMembershipResolver` (shared) que implementa `users`.
-- Sesión en PostgreSQL (Spring Session JDBC): servidores sin estado.
+- Sesión en PostgreSQL (Spring Session JDBC): servidores sin estado; lo que va en ella es `Serializable`.
 - Aislamiento en dos barreras: `@TenantId` de Hibernate + RLS. La app usa `turnos_app` (sin
   privilegios), Flyway el dueño. `TenantContext` (negocio, persona, sistema) se fija antes de la
   transacción con `@BusinessScoped`; la persona la fija `SignedInUserScopeFilter`.
@@ -32,7 +32,6 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - PostgreSQL de Docker va en el 5433: la PC ya tiene otro PostgreSQL en el 5432.
 - Boot 4: anotaciones de prueba web en `org.springframework.boot.webmvc.test.autoconfigure`;
   `server.servlet.session.cookie.*` no se aplica a Spring Session (bean `CookieSerializer`).
-- Todo lo que va en la sesión tiene que ser `Serializable`.
 - Hibernate valida tipos: `VARCHAR`, no `CHAR`, para columnas `String`.
 - Nunca leer `SecurityContextHolder` al entregar una conexión: carga la sesión desde la base,
   pide otra conexión y agota el pool (se diagnosticó con `leak-detection-threshold` de Hikari).
@@ -41,10 +40,10 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - `csrf()` de Spring Security Test cambia el filtro del contexto compartido: usar `SpaCsrf`.
 - Constantes `static final` que usa el constructor van ANTES de las que crean instancias
   (pasó dos veces: `Money.ZERO` y `ScheduleRules.DEFAULT`). Propuesto pasarlo a AGENTS.md.
-- Spring ya no copia el mensaje de PostgreSQL en la excepción: mirar `rootCause()`.
-- En pruebas, las colecciones lazy se leen dentro de `TransactionTemplate`.
+- Si Flyway dice "more than one migration with version", hay una migración vieja en `target/`:
+  correr `mvnw clean verify`.
 - Si un cambio de CSS no se ve en `npm run dev`, borrar `.next/` (caché de Turbopack).
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
 ## Próximos pasos
 - Lautaro: crear las credenciales OAuth de Google y probar el login real.
-- Hito 6: implementar `BookedTimes`, cotizar con `ServiceQuotes` y copiar precio y duración al turno.
+- Hito 7: limpiar HOLD vencidos con JobRunr; reemplazar los emails de reserva por notificaciones.

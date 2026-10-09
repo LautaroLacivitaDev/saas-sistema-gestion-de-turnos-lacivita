@@ -159,3 +159,26 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | `catalog` ofrece `ServiceQuotes` (precio y duración de un servicio o combo con un profesional) y `business`, `BranchSummary` con la zona horaria | La agenda los necesita sin tocar tablas de otro módulo; las reservas los van a reutilizar |
 | Quien deja el equipo pierde su horario y sus bloqueos (evento `MemberLeft`) | Que no aparezca en la disponibilidad |
 | La disponibilidad pública no tiene límite de pedidos por ahora | Se revisa en el Hito 10 (endurecimiento) con datos reales de uso |
+
+## Hito 6: reservas (2026-10-08)
+
+| Decisión | Por qué |
+|---|---|
+| Módulo `booking`: turno (`Appointment`) con sus servicios copiados (`AppointmentLine`), cliente por negocio (`Customer`), verificación del invitado y políticas de reserva | Sigue el modelo de datos de la especificación |
+| Restricción de exclusión `appointment_no_overlap`: un profesional no tiene dos turnos activos superpuestos (todos menos cancelados y ausentes), con prueba de dos reservas simultáneas | La base garantiza la regla aunque dos personas reserven a la vez |
+| El horario elegido queda como `HOLD` 5 minutos; un `HOLD` vencido se borra al reservar ese horario y no cuenta en la disponibilidad | El cliente completa sus datos sin que le saquen el horario, y un abandono no lo bloquea |
+| Los HOLD vencidos que nadie pisa quedan en la tabla hasta el Hito 7, que agrega tareas programadas (JobRunr) para limpiarlos | No justifica un programador propio ahora |
+| Lo que se reserva usa el mismo cálculo que la disponibilidad pública (`FreeBarbers` de la agenda) | Lo que se ofrece es exactamente lo que se puede reservar |
+| "Cualquiera disponible" asigna al profesional libre con menos turnos ese día | Es el primer criterio de la especificación; rotación y preferido del cliente quedan para cuando haya historial |
+| Invitado: código de 6 dígitos por email, válido 10 minutos y con 5 intentos (un error cuenta aunque la solicitud falle). Con sesión y email verificado no hace falta | Probar que el email es de quien reserva, sin obligar a crear cuenta |
+| Cloudflare Turnstile al pedir el código; si Cloudflare no responde, se rechaza. Desactivado en desarrollo y pruebas, obligatorio en producción | Frena bots que llenen la agenda o manden emails masivos |
+| Tomar horario, pedir código y confirmar llevan límite de intentos por IP y por endpoint (no por URL); el filtro ahora entiende rutas con comodines | Probar códigos en muchos turnos distintos cuenta junto |
+| Link del cliente con un token aleatorio de 256 bits (se guarda su hash) que viaja en el cuerpo del pedido, no en la URL | No queda en logs ni en el historial del navegador; se puede invalidar |
+| Plazo para que el cliente cancele o reprograme: del negocio, 2 horas por defecto, lo cambia el dueño. Pasado el plazo, solo el equipo puede cambiar el turno | La especificación pide un plazo configurable por negocio |
+| El cliente reprograma con el mismo profesional; el equipo puede cambiar también de profesional. El precio y los servicios se conservan | Cambiar de profesional cambiaría el precio: lo decide el local |
+| Los turnos que carga el equipo no se limitan al horario ni a la anticipación (sí a no superponerse); pueden quedar "a confirmar" (`PENDING`) | El equipo decide, por ejemplo, atender a alguien fuera de hora |
+| `NO_SHOW` y `COMPLETED` solo después de la hora del turno | Evita marcar por error un turno que todavía no pasó |
+| Cada persona del equipo ve y gestiona los turnos de sus sucursales; el contacto del cliente lo ven el dueño, los gerentes y el profesional del turno | Comportamiento por defecto de la especificación; que el dueño lo restrinja queda para el panel |
+| El cliente es por negocio y se reconoce por cuenta, email o (si lo cargó el equipo) teléfono | Cada negocio tiene su base de clientes; quien vuelve no se duplica |
+| Emails de la reserva (código y confirmación con link) en texto plano y sin reintentos | Las notificaciones completas (plantillas, `.ics`, recordatorios, outbox) son el Hito 7 |
+| `catalog` cotiza con el detalle por servicio (`Quote.lines`), `users` informa si una cuenta tiene el email verificado y `BookedTimes` informa el id de cada turno | Lo que necesitan las reservas, sin tocar tablas de otros módulos; el id evita que un turno choque consigo mismo al reprogramarlo |

@@ -172,6 +172,48 @@ Horarios de atención de cada sucursal, horario de cada profesional en cada sucu
 
 Un horario se ofrece si el profesional trabaja y la sucursal atiende, no es feriado, no hay un bloqueo ni un turno (más el tiempo de preparación) y respeta la anticipación. Los horarios se calculan en la zona de la sucursal, incluidos los cambios de horario de verano.
 
+## Reservas
+
+### Reserva online (sin cuenta)
+
+En tres pasos, desde la página pública del negocio (`/api/public/businesses/{slug}`):
+
+| Endpoint | Para qué |
+|---|---|
+| `POST /holds` | Reserva el horario 5 minutos (`serviceId` o `comboId`, `branchId`, `startsAt` y opcional `barberId`; sin profesional, se asigna al libre con menos turnos ese día). 409 `slot_not_available` si ya no está libre |
+| `POST /holds/{holdId}/guest-code` | Invitados: guarda nombre, email y teléfono, verifica con Cloudflare Turnstile (`humanToken`) y manda un código de 6 dígitos por email |
+| `POST /holds/{holdId}/confirm` | Confirma con el `code` del email (5 intentos). Con sesión y email verificado no hace falta código. Llega por email el link para gestionar el turno |
+
+Los tres llevan límite de intentos por IP. El precio y la duración de cada servicio se copian en el turno: si después cambian, el turno no cambia.
+
+### Link del cliente
+
+Sin sesión, con el token del link del email (va en el cuerpo, no en la URL):
+
+| Endpoint | Para qué |
+|---|---|
+| `POST /api/public/appointments/lookup` | Muestra el turno y hasta cuándo se puede cambiar (`changeableUntil`) |
+| `POST /api/public/appointments/cancel` | Cancela, dentro del plazo del negocio (422 `change_deadline_passed`) |
+| `POST /api/public/appointments/reschedule` | Pasa el turno a otro horario libre del mismo profesional, dentro del plazo |
+
+### Agenda del equipo
+
+Rutas bajo `/api/businesses/{id}`. Cada persona trabaja con los turnos de sus sucursales (el dueño, de todas). El contacto del cliente lo ven el dueño, los gerentes y el profesional del turno.
+
+| Endpoint | Para qué | Quién |
+|---|---|---|
+| `GET /appointments?from=&to=` (opcional `branchId`, `barberId`) | Turnos del período (hasta un mes) | Todo el equipo, en su alcance |
+| `POST /appointments` | Carga un turno de un cliente que llamó o llegó sin reserva (`confirmed: false` lo deja a confirmar) | Todo el equipo, en sus sucursales |
+| `PUT /appointments/{id}/status` | `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `NO_SHOW` o `CANCELLED`, según el estado actual | Todo el equipo, en sus sucursales |
+| `PUT /appointments/{id}/time` | Mueve el turno a otro horario y, si se indica, a otro profesional | Todo el equipo, en sus sucursales |
+| `GET` · `PUT /booking-settings` | Plazo para que el cliente cancele o reprograme (horas antes; 2 por defecto) | Ver: todos. Cambiar: el dueño |
+
+Dos turnos activos del mismo profesional nunca se superponen: lo impide una restricción de exclusión en PostgreSQL, aunque dos personas reserven el mismo horario a la vez.
+
+### Cloudflare Turnstile
+
+En desarrollo y en las pruebas está desactivado (la aplicación lo avisa en el log). En producción es obligatorio: configurá `TURNSTILE_SECRET_KEY` con la clave secreta del sitio; sin ella la aplicación no arranca.
+
 ## Pruebas
 
 ```bash
