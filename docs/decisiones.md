@@ -113,3 +113,27 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | Viewport explícito con `viewport-fit=cover`, zonas seguras del notch con `env(safe-area-inset-*)`, alturas con `dvh` y sin bloquear el zoom | Aprovecha toda la pantalla en celulares con notch sin perder accesibilidad |
 | Se corrigió `--font-sans`, que el tema de shadcn dejaba apuntando a sí mismo (la app salía en Times) | Se vio al revisar la pantalla en tamaño celular |
 | Agenda del panel con selector "Día / Semana" en cualquier pantalla: por defecto Día en el celular (con flechas y tira de la semana) y Semana desde tablet. Lo eligió Lautaro | Siete columnas en 375 px no se leen ni se tocan bien; el selector deja ver la semana a quien la necesite |
+
+## Hito 4: catálogo (2026-10-08)
+
+| Decisión | Por qué |
+|---|---|
+| Módulo `catalog` con tres conceptos: `Service` (catálogo del negocio, compartido por las sucursales), `BarberService` (lo que hace cada profesional) y `Combo` | Sigue el glosario y el modelo de datos de la especificación |
+| Cualquier persona del equipo puede ofrecer servicios, también el dueño y los gerentes | En muchas barberías el dueño también atiende |
+| Precio y duración propios opcionales: vacíos heredan el valor base del servicio, y un cambio del valor base alcanza a quienes heredan | Es lo que pide la especificación ("si no lo hace, hereda") |
+| Rango de precios por servicio (no uno general del negocio), que fija solo el dueño. El precio base tiene que estar dentro del rango | Un corte y una barba no cuestan lo mismo: un rango único no serviría |
+| Un barbero con un precio fuera de rango deja un pedido; mientras tanto rige su precio anterior. Pedir otro precio reemplaza el pedido, y volver al precio base lo cancela | El cliente nunca ve un precio no aprobado |
+| Gerentes y dueño aplican cualquier precio directamente, aun fuera del rango | Son quienes aprueban: pedirse aprobación a sí mismos no tiene sentido |
+| Al cambiar el rango, los precios que ya estaban fuera se conservan; el rango aplica a los cambios siguientes | Cambiar un rango no debería cambiar precios en silencio |
+| El gerente gestiona los servicios y precios de los barberos de sus sucursales (no los de otros gerentes); ve todos los pedidos de precio del negocio pero solo resuelve los de sus sucursales | Mismo criterio que el equipo (Hito 3) |
+| Un barbero propone un servicio; al aprobarlo, quien lo propuso pasa a ofrecerlo con los valores base | Es quien lo pidió: evita un paso extra |
+| Los servicios nunca se borran: se retiran (`INACTIVE`). Nombre único por negocio sin distinguir mayúsculas, sin contar las propuestas rechazadas | Los turnos y reportes históricos los siguen necesitando |
+| Combo de 2 a 5 servicios distintos, que hace un solo profesional; precio y duración son la suma de los de ese profesional, sin precio propio del combo | La especificación dice que "suman"; un solo profesional lo decidió Lautaro |
+| Duraciones de a 5 minutos, hasta 8 horas por servicio. Importes en pesos con dos decimales (`Money`), sin moneda explícita | La agenda arma horarios prolijos; el MVP opera solo en pesos |
+| El catálogo público muestra solo lo que se puede reservar: servicios y combos activos que hace alguien del equipo, con el precio de cada profesional y el "desde" | Que el cliente no elija algo que nadie hace |
+| El catálogo público se arma dentro del negocio del link, así las tablas del catálogo tienen RLS sin lectura abierta | Más aislamiento que la lectura pública que usan negocios y sucursales |
+| Quien deja el equipo deja de ofrecer sus servicios: `users` publica `MemberLeft` y el catálogo reacciona en la misma transacción | El catálogo no depende de cómo `users` gestiona las bajas |
+| `users` ofrece `TeamDirectory` (rol, sucursales y nombre de los miembros) para otros módulos | El catálogo necesita saber quién es quién sin tocar tablas de otro módulo |
+| Los casos de uso del catálogo usan `@Component` en lugar de `@Service` | La entidad del glosario se llama `Service` y chocaría con la anotación |
+| El perfil público del profesional (foto, descripción, especialidades) pasa al Hito 8 | Necesita la carga de imágenes, que llega con el frontend público |
+| Todavía no hay una API de cotización para reservas | La va a usar el Hito 6; el cálculo ya está en el dominio (`Terms`, `Combo.termsFrom`) |

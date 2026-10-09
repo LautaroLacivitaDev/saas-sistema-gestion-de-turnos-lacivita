@@ -131,6 +131,27 @@ docker compose exec postgres psql -U turnos -d turnos -f /docker-entrypoint-init
 
 En producción se configuran por separado: `DATABASE_USERNAME` / `DATABASE_PASSWORD` (aplicación, sin privilegios) y `FLYWAY_USERNAME` / `FLYWAY_PASSWORD` (migraciones).
 
+## Catálogo
+
+Servicios del negocio (compartidos por todas las sucursales), combos y lo que hace cada profesional con su precio y su duración. Las rutas de la tabla cuelgan de `/api/businesses/{id}`, salvo la del catálogo público.
+
+| Endpoint | Para qué | Quién |
+|---|---|---|
+| `GET /services` | Lista los servicios (filtro opcional `?status=ACTIVE`, `INACTIVE`, `PROPOSED` o `REJECTED`) | Todo el equipo |
+| `POST /services` · `PUT /services/{serviceId}` | Agrega o edita un servicio: nombre, categoría, descripción, duración y precio base | Gerentes y dueño |
+| `PUT /services/{serviceId}/price-range` | Fija el rango en el que cada barbero elige su precio (`min` y `max` vacíos lo quitan) | Dueño |
+| `PUT /services/{serviceId}/active` | Retira o vuelve a ofrecer un servicio | Gerentes y dueño |
+| `POST /service-proposals` | Propone un servicio nuevo, que queda esperando aprobación | Todo el equipo |
+| `POST /services/{serviceId}/approve` · `…/reject` | Aprueba o rechaza una propuesta; quien la propuso pasa a ofrecer el servicio | Gerentes y dueño |
+| `GET` · `POST /combos` · `PUT /combos/{comboId}` | Combos de 2 a 5 servicios que hace un mismo profesional; precio y duración se suman | Ver: todo el equipo. Crear y editar: gerentes y dueño |
+| `GET /barbers/{userId}/services` | Lo que hace un profesional, con su precio y duración vigentes | Todo el equipo |
+| `PUT /barbers/{userId}/services/{serviceId}` | Ofrece un servicio o cambia el precio y la duración propios (vacíos heredan los valores base) | Cada uno los suyos; gerente, los barberos de sus sucursales; dueño, todos |
+| `DELETE /barbers/{userId}/services/{serviceId}` | Deja de ofrecer un servicio | Igual que la fila anterior |
+| `GET /price-requests` · `POST /price-requests/{offeringId}/approve` · `…/reject` | Precios fuera de rango que pidieron los barberos | Gerentes (solo de sus sucursales) y dueño |
+| `GET /api/public/businesses/{slug}/catalog` | Catálogo de la página pública: lo que se puede reservar, el precio de cada profesional y el "desde" | Sin sesión |
+
+Si un barbero elige un precio fuera del rango, la respuesta trae `"outcome": "AWAITING_APPROVAL"` y sigue rigiendo su precio anterior hasta que un gerente lo apruebe. Los cambios de servicios y precios quedan en el registro de cambios del negocio.
+
 ## Pruebas
 
 ```bash
