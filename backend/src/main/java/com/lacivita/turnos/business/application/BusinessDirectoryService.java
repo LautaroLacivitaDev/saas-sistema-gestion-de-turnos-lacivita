@@ -4,9 +4,11 @@ import com.lacivita.turnos.business.BusinessDirectory;
 import com.lacivita.turnos.business.BusinessSummary;
 import com.lacivita.turnos.business.domain.BranchRepository;
 import com.lacivita.turnos.business.domain.BusinessRepository;
+import com.lacivita.turnos.business.domain.SlugClaimRepository;
 import com.lacivita.turnos.shared.security.BranchLocator;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -19,11 +21,17 @@ class BusinessDirectoryService implements BusinessDirectory, BranchLocator {
 
     private final BusinessRepository businesses;
     private final BranchRepository branches;
+    private final SlugClaimRepository slugClaims;
     private final BusinessMapper mapper;
 
-    BusinessDirectoryService(BusinessRepository businesses, BranchRepository branches, BusinessMapper mapper) {
+    BusinessDirectoryService(
+            BusinessRepository businesses,
+            BranchRepository branches,
+            SlugClaimRepository slugClaims,
+            BusinessMapper mapper) {
         this.businesses = businesses;
         this.branches = branches;
+        this.slugClaims = slugClaims;
         this.mapper = mapper;
     }
 
@@ -42,6 +50,14 @@ class BusinessDirectoryService implements BusinessDirectory, BranchLocator {
         return businesses.findAllByIdIn(businessIds).stream()
                 .map(mapper::toSummary)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<BusinessSummary> findBySlug(String slug) {
+        return slugClaims
+                .findBusinessBySlug(slug.strip().toLowerCase(Locale.ROOT))
+                .map(mapper::toSummary);
     }
 
     @Override

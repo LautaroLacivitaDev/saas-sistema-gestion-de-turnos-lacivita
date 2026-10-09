@@ -6,6 +6,7 @@ import com.lacivita.turnos.shared.security.AuthenticatedUser;
 import com.lacivita.turnos.shared.security.BusinessRole;
 import com.lacivita.turnos.shared.tenancy.BusinessId;
 import com.lacivita.turnos.shared.tenancy.BusinessScoped;
+import com.lacivita.turnos.users.MemberLeft;
 import com.lacivita.turnos.users.application.TeamViews.MemberView;
 import com.lacivita.turnos.users.domain.Membership;
 import com.lacivita.turnos.users.domain.MembershipRepository;
@@ -98,6 +99,7 @@ public class TeamMembers {
         TeamPolicy.checkCanManage(actors.actorIn(actor, businessId), membership);
         memberships.delete(membership);
         events.publishEvent(new TeamEvents.MemberRemoved(businessId, userId, membership.getRole()));
+        events.publishEvent(new MemberLeft(businessId, userId));
     }
 
     private static MemberView toView(Membership membership, User user) {

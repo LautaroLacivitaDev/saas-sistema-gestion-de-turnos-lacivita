@@ -13,6 +13,9 @@ public interface BusinessDirectory {
 
     List<BusinessSummary> findAll(Collection<UUID> businessIds);
 
+    /** Negocio por su link actual o por uno que usó antes. */
+    Optional<BusinessSummary> findBySlug(String slug);
+
     /** {@code true} si todas las sucursales existen y pertenecen al negocio. */
     boolean branchesBelongTo(UUID businessId, Set<UUID> branchIds);
 }

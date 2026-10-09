@@ -1,5 +1,6 @@
 package com.lacivita.turnos.users.domain;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +19,8 @@ public interface MembershipRepository extends Repository<Membership, UUID> {
     boolean existsByUserIdAndBusinessId(UUID userId, UUID businessId);
 
     Page<Membership> findByBusinessId(UUID businessId, Pageable pageable);
+
+    List<Membership> findAllByBusinessIdAndUserIdIn(UUID businessId, Collection<UUID> userIds);
 
     /** Negocios en los que trabaja una persona. Son pocos: se devuelven completos. */
     List<Membership> findAllByUserIdOrderByCreatedAtAsc(UUID userId);
