@@ -45,6 +45,9 @@ app:
     from-name: Laciturnos
   rate-limit:
     requests-per-minute: 10
+  # Cloudflare Turnstile para las reservas como invitado. Vacío lo desactiva (solo desarrollo y pruebas).
+  turnstile:
+    secret-key: ${TURNSTILE_SECRET_KEY:}
 
 management:
   endpoints:

@@ -24,6 +24,9 @@ app:
   frontend-url: ${FRONTEND_URL}
   mail:
     from: ${MAIL_FROM}
+  # Obligatoria en producción: sin ella la aplicación no arranca.
+  turnstile:
+    secret-key: ${TURNSTILE_SECRET_KEY}
 
 springdoc:
   api-docs:

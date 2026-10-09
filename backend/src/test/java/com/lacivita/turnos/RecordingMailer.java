@@ -17,6 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class RecordingMailer implements Mailer {
 
     private static final Pattern TOKEN = Pattern.compile("token=([A-Za-z0-9_%-]+)");
+    private static final Pattern CODE = Pattern.compile("código para confirmar el turno es: (\\d{6})");
 
     private final List<MailMessage> sent = new CopyOnWriteArrayList<>();
 
@@ -37,6 +38,16 @@ public class RecordingMailer implements Mailer {
     public List<MailMessage> sentTo(String email) {
         var recipient = new Email(email);
         return sent.stream().filter(m -> m.to().equals(recipient)).toList();
+    }
+
+    /** Código de 6 dígitos del último email enviado a esa dirección. */
+    public Optional<String> lastCodeSentTo(String email) {
+        var messages = sentTo(email);
+        if (messages.isEmpty()) {
+            return Optional.empty();
+        }
+        var matcher = CODE.matcher(messages.getLast().body());
+        return matcher.find() ? Optional.of(matcher.group(1)) : Optional.empty();
     }
 
     /** Token del último email enviado a esa dirección. */
