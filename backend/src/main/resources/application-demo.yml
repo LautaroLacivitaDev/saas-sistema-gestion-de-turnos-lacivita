@@ -1,0 +1,11 @@
+# Modo demo (proyecto de portfolio). Se suma a otro perfil: "prod,demo" en el hosting o "dev,demo" en la PC.
+#   - Los emails no se envían: quedan en el buzón de la demo (/demo/emails en el frontend).
+#   - Flyway suma db/demo: el negocio "Barbería El Faro" con su equipo, clientes y turnos, que se
+#     reinicia en cada arranque.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/demo
+
+app:
+  demo:
+    enabled: true

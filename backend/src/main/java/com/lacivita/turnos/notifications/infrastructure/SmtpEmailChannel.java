@@ -6,6 +6,7 @@ import com.lacivita.turnos.notifications.domain.NotificationChannel;
 import com.lacivita.turnos.notifications.domain.OutgoingMessage;
 import com.lacivita.turnos.shared.config.AppProperties;
 import java.nio.charset.StandardCharsets;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
  * producción, al proveedor transaccional configurado en {@code spring.mail}.
  */
 @Component
+@ConditionalOnBooleanProperty(name = "app.demo.enabled", havingValue = false, matchIfMissing = true)
 class SmtpEmailChannel implements NotificationChannel {
 
     private final JavaMailSender mailSender;

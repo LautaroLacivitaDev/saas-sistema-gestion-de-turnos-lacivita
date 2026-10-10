@@ -16,7 +16,8 @@ spring:
     host: ${MAIL_HOST:smtp.resend.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:resend}
-    password: ${MAIL_PASSWORD}
+    # En el modo demo no se envían emails: puede quedar vacía.
+    password: ${MAIL_PASSWORD:}
     properties:
       # Cifrado obligatorio: sin TLS no se manda nada (ni la API key).
       mail.smtp.auth: true

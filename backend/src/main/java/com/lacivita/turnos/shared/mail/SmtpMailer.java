@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -17,6 +18,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 // commit y sin reintentos automáticos: los espera la persona en ese momento y, si no llegan, pide otro.
 // No pasan por la bandeja de salida de notificaciones para no guardar tokens ni códigos en claro.
 @Component
+@ConditionalOnBooleanProperty(name = "app.demo.enabled", havingValue = false, matchIfMissing = true)
 class SmtpMailer implements Mailer {
 
     private static final Logger log = LoggerFactory.getLogger(SmtpMailer.class);

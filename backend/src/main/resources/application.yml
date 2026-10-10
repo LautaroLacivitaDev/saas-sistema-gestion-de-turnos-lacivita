@@ -58,6 +58,9 @@ app:
   # Cloudflare Turnstile para las reservas como invitado. Vacío lo desactiva (solo desarrollo y pruebas).
   turnstile:
     secret-key: ${TURNSTILE_SECRET_KEY:}
+  # Modo demo (proyecto de portfolio): lo activa el perfil "demo" (ver application-demo.yml).
+  demo:
+    enabled: false
   notifications:
     # Envía los avisos apenas se confirma el cambio del turno. La tarea periódica de JobRunr igual
     # revisa cada minuto los recordatorios, los resúmenes y los reintentos.
