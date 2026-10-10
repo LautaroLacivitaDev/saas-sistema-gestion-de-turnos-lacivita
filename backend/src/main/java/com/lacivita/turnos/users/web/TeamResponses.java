@@ -26,10 +26,10 @@ final class TeamResponses {
         }
     }
 
-    record Membership(UUID businessId, String businessName, String slug, String role) {
+    record Membership(UUID businessId, String businessName, String slug, String role, Set<UUID> branchIds) {
 
         static Membership from(MembershipView view) {
-            return new Membership(view.businessId(), view.businessName(), view.slug(), view.role());
+            return new Membership(view.businessId(), view.businessName(), view.slug(), view.role(), view.branchIds());
         }
     }
 }

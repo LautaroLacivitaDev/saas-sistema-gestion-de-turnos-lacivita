@@ -65,6 +65,7 @@ class TeamJoining {
                 businessId,
                 business.name(),
                 business.slug(),
-                membership.getRole().name());
+                membership.getRole().name(),
+                membership.getBranchIds());
     }
 }

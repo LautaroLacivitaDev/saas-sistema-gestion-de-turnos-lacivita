@@ -129,6 +129,11 @@ class TeamApiIntegrationTests {
                     .extractingPath("$[*].role")
                     .asArray()
                     .containsExactly("BARBER", "MANAGER");
+            assertThat(api.get(barber, "/api/memberships"))
+                    .bodyJson()
+                    .extractingPath("$[*].branchIds[0]")
+                    .asArray()
+                    .containsExactly(centro.toString(), otherBranch.toString());
         }
 
         @Test

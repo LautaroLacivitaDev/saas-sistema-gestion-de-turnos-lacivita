@@ -13,6 +13,10 @@ public final class TeamViews {
 
     public record InvitationView(UUID id, String email, String role, Set<UUID> branchIds, Instant expiresAt) {}
 
-    /** Un negocio en el que trabaja la persona con sesión iniciada. */
-    public record MembershipView(UUID businessId, String businessName, String slug, String role) {}
+    /**
+     * Un negocio en el que trabaja la persona con sesión iniciada.
+     *
+     * @param branchIds sus sucursales; vacío para el dueño, que trabaja en todas
+     */
+    public record MembershipView(UUID businessId, String businessName, String slug, String role, Set<UUID> branchIds) {}
 }

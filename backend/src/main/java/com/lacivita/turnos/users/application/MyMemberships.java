@@ -38,7 +38,8 @@ public class MyMemberships {
                             business.id(),
                             business.name(),
                             business.slug(),
-                            membership.getRole().name());
+                            membership.getRole().name(),
+                            membership.getBranchIds());
                 })
                 .toList();
     }
