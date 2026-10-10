@@ -3,12 +3,12 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decisiones.md`.
 ## Estado actual
 - La app se llama **Laciturnos** (interfaz, emails, docs). Paquete, base y contenedores siguen `turnos`.
-- Hitos 1 a 8 terminados (2026-10-09). Hito 8: sitio público (buscador, `/{slug}`, perfiles, reserva en
-  3 pasos, `/turno`, cuenta y "mis turnos"). Backend 348 pruebas, frontend 21; probado a 320/375 px.
+- Hitos 1 a 9 terminados (2026-10-09). Hito 9: panel (agenda Día/Semana, clientes, catálogo, equipo,
+  sucursales, horarios, perfil, avisos, ajustes y onboarding `/panel/nuevo`). Backend 353, frontend 32.
 - **Mobile first**: la app se usa sobre todo desde el celular. Reglas en AGENTS.md; cada pantalla
   se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
 - Login con Google probado solo con proveedor simulado; para Google real faltan credenciales OAuth.
-- Próximo: Hito 9, panel del negocio (agenda Día/Semana, catálogo, equipo, horarios, clientes).
+- Próximo: Hito 10 (producción, modo demo y datos de ejemplo para el portfolio).
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
 ## Decisiones (y por qué)
 - Roles en dos niveles: Spring Security solo `ADMIN`/`USER`; `OWNER`/`MANAGER`/`BARBER` por
@@ -46,5 +46,7 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
 - Si en `npm run dev` un cambio no se ve o una página queda en "Cargando…" (el contenido llega pero
   no se muestra), borrar `.next/` y reiniciar: es la caché de Turbopack, no un error del código.
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
+- Panel del navegador de Claude oculto: suspende la red y la página queda en "Cargando…". Reabrir
+  con `preview_start` (no es un error de la app).
 ## Próximos pasos
 - Proyecto de portfolio (2026-10-09): sin dominio propio; en Hito 10, modo demo de emails y datos de ejemplo.

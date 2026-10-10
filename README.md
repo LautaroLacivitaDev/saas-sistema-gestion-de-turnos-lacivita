@@ -244,6 +244,25 @@ Endpoints que se sumaron para el sitio:
 | `GET` · `PUT /api/businesses/{id}/barbers/{barberId}/profile` | Perfil público: descripción, hasta 6 especialidades y la foto como link https | El profesional, su gerente o el dueño |
 | `GET /api/me/appointments` | Mis últimos 50 turnos como cliente, en todos los negocios | Con sesión |
 
+## Panel del negocio
+
+En `/panel`, para el equipo. Barra inferior en el celular y navegación lateral desde tablet; cada rol ve solo lo que puede hacer. Probado a 320 y 375 px y en escritorio.
+
+| Página | Qué hay | Quién |
+|---|---|---|
+| `/panel/nuevo` | Alta guiada en 6 pasos: negocio y link, sucursal, horario, servicios, "yo atiendo" y equipo | Con cuenta |
+| `…/agenda` | Turnos por día o semana (Día por defecto en el celular), por sucursal y profesional; ficha del turno con sus acciones y "Nuevo turno" de mostrador | Todo el equipo |
+| `…/clientes` | Base de clientes: búsqueda por nombre, email o teléfono, ficha con historial, notas y preferencias | Gerente y dueño |
+| `…/catalogo` | Servicios, combos, rango de precios y aprobaciones (servicios propuestos y precios fuera de rango) | Todo el equipo (el barbero propone) |
+| `…/equipo` | Miembros con rol y sucursales, bajas, invitaciones pendientes. La invitación se acepta en `/invitacion?token=` | Gerente y dueño |
+| `…/sucursales` | Datos, horario de atención, días cerrados y cierres por horas de cada sucursal | Gerente (las suyas) y dueño |
+| `…/horarios` | Horario de cada profesional por sucursal y sus bloqueos; las reglas de la agenda, solo el dueño | Todo el equipo |
+| `…/perfil` | Perfil público y mis servicios con precio y duración propios | Todo el equipo |
+| `…/avisos` | Avisos de turnos nuevos, movidos y cancelados; marcar como leídos | Todo el equipo |
+| `…/ajustes` | Datos y link del negocio, plazo de cancelación, recordatorios y textos de los emails | Dueño |
+
+`GET /api/memberships` ahora incluye `branchIds` (vacío para el dueño, que trabaja en todas).
+
 ## Notificaciones
 
 Cada cambio en un turno deja sus avisos en una bandeja de salida (tabla `notification`) en la misma transacción: si el turno se guarda, el aviso también, y no se pierde aunque el envío falle.

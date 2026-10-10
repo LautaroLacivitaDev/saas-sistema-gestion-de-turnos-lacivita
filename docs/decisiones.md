@@ -239,3 +239,19 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | La página del link del cliente no manda el `Referer` | El token va en la URL del email |
 | Botón táctil (`size="touch"`, 44 px y letra de 16 px) y `buttonVariants` combina las clases (si no, en los links el borde transparente de la base tapaba el de la variante) | Se vio al probar en el navegador |
 | QR del negocio armado en el servidor como SVG | No suma JavaScript al celular |
+
+## Hito 9: frontend del panel (2026-10-09)
+
+| Decisión | Por qué |
+|---|---|
+| El panel se arma en el navegador según la sesión (`export const instant = false` en el layout y en cada página) y los datos comunes (membresía, sucursales, profesionales y catálogo) se cargan una vez en un contexto | El contenido depende de quién ingresó y de su rol; no hay nada que prerenderizar ni indexar |
+| Navegación por rol: barra inferior en el celular con lo principal (Agenda, Clientes, Catálogo, Equipo, Más) y lateral desde tablet. Lo que el rol no puede hacer no se muestra; el servidor igual lo rechaza | Mobile first; los permisos viven en el servidor |
+| Agenda con "Día / Semana": Día por defecto en el celular y Semana desde tablet; turnos en tarjetas, con las acciones que permite el estado | Mobile first, como pide AGENTS.md |
+| Los barberos no ven la base de clientes (solo gerente y dueño); ven a sus clientes desde la ficha del turno | Datos personales: el mínimo necesario |
+| Ediciones en hojas que suben desde abajo en el celular y se centran desde tablet (Base UI Dialog) | Al alcance del pulgar sin perder el contexto de la lista |
+| La membresía incluye las sucursales de la persona (vacío para el dueño, que trabaja en todas) | Cada profesional sabe dónde cargar su horario sin pedir el listado del equipo, que es solo para gerentes |
+| Las coordenadas de la sucursal no se piden en el panel: el link al mapa se arma con la dirección | Menos campos; si ya tenía coordenadas, se conservan |
+| Los bloqueos de los próximos 3 meses se piden para todo el negocio y se filtran por sucursal o profesional en el navegador | La API ya existía; con paginado de 100 alcanza para el MVP |
+| Invitar: el dueño elige el rol; el gerente invita profesionales de sus sucursales. Aceptar la invitación es un botón (no al abrir el link) con una cuenta del mismo email | Es una decisión explícita; el link puede abrirse con otra sesión |
+| Onboarding en `/panel/nuevo` de 6 pasos que guardan al confirmarse: negocio (link propuesto desde el nombre), sucursal, horario (arranca lunes a viernes de 9 a 19 y sábados de 9 a 14), servicios, "yo atiendo" (ofrece los servicios y toma el horario de la sucursal) y equipo. Se probó completo en menos de un minuto | Debe poder hacerse en menos de 10 minutos desde el celular; si se corta, lo hecho queda |
+| Textos de los emails: se edita asunto y mensaje con las variables que informa la API; "Volver al texto de Laciturnos" restablece | El diseño y los datos del turno no se tocan |
