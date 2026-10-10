@@ -483,6 +483,7 @@ export const messages = {
       unread: (count: number) => (count === 1 ? "1 aviso sin leer" : `${count} avisos sin leer`),
       empty: "No tenés avisos.",
       markAll: "Marcar todos como leídos",
+      markRead: "Marcar como leído",
     },
   },
   errors: {
