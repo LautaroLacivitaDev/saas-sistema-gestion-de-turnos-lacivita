@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
+import { normalizeSlug } from "@/lib/slug";
 import { siteUrl } from "@/lib/site";
 import { useDebounced } from "@/lib/use-debounced";
 import { messages } from "@/messages/es-AR";
@@ -10,11 +11,6 @@ import { messages } from "@/messages/es-AR";
 const t = messages.panel.settings;
 
 type SlugCheck = { slug: string; available: boolean; code: string | null; message: string | null };
-
-/** Lo que el servidor guardaría: minúsculas y guiones en lugar de espacios. */
-export function normalizeSlug(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, "-");
-}
 
 /** Si el link que se está escribiendo está libre. No consulta el que ya tiene el negocio. */
 export function useSlugCheck(slug: string, current?: string) {

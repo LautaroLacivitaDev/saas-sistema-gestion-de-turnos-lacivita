@@ -535,7 +535,6 @@ export const messages = {
       invited: (email: string) => `Invitación enviada a ${email}.`,
       doneTitle: "¡Listo!",
       doneText: "Tu página ya está publicada:",
-      createAnother: "Crear otro negocio",
     },
     notices: {
       title: "Avisos",
