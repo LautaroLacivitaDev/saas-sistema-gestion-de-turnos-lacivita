@@ -43,5 +43,42 @@ export type AccountAppointment = Omit<Schemas["AccountAppointment"], "appointmen
 
 export type Account = Schemas["Account"];
 
+// --- Panel del negocio ---
+
+/** Un negocio de la persona y su rol ahí: OWNER, MANAGER o BARBER. */
+export type Membership = Schemas["Membership"];
+export type Business = Nullable<Schemas["Business"], "description">;
+export type Member = Schemas["Member"];
+export type Invitation = Schemas["Invitation"];
+export type TeamService = Nullable<
+  Schemas["Service"],
+  "description" | "priceMin" | "priceMax" | "proposedBy"
+>;
+export type Combo = Schemas["Combo"];
+export type Offering = Nullable<Schemas["Offering"], "ownPrice" | "ownDurationMinutes" | "requestedPrice">;
+export type PriceRequest = Nullable<Schemas["PriceRequest"], "priceMin" | "priceMax">;
+export type BarberSchedule = Schemas["BranchHours"];
+export type Holiday = Nullable<Schemas["Holiday"], "branchId">;
+export type TimeBlock = Nullable<Schemas["TimeBlock"], "barberId" | "branchId" | "reason">;
+export type ScheduleRules = Schemas["Rules"];
+export type CustomerSummary = Nullable<
+  Schemas["CustomerSummaryView"],
+  "email" | "phone" | "lastAppointmentAt"
+>;
+export type CustomerDetail = Omit<
+  Nullable<Schemas["CustomerDetailView"], "email" | "phone" | "notes" | "preferences">,
+  "history"
+> & { history: Appointment[] };
+export type Delivery = Nullable<Schemas["DeliveryView"], "recipientUserId" | "sentAt">;
+export type Notice = Schemas["NoticeView"];
+export type Profile = Nullable<Schemas["ProfileView"], "bio" | "photoUrl">;
+
+/** Página de resultados de la API del panel. */
+export type Page<T> = { items: T[]; page: number; size: number; totalItems: number; totalPages: number };
+
+export type Role = "OWNER" | "MANAGER" | "BARBER";
+export type DayOfWeek = Schemas["DayData"]["day"];
+export type Week = { days: { day: DayOfWeek; ranges: { start: string; end: string }[] }[] };
+
 /** Lo que se reserva: un servicio o un combo. */
 export type BookableItem = { kind: "service"; id: string } | { kind: "combo"; id: string };

@@ -213,6 +213,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/businesses/{businessId}/customers/{customerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ficha de un cliente
+         * @description Gerentes y dueño. Con sus últimos 50 turnos.
+         */
+        get: operations["detail"];
+        /**
+         * Corrige el contacto y las notas de un cliente
+         * @description Gerentes y dueño. 409 customer_email_taken si otro cliente ya tiene ese email.
+         */
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/businesses/{businessId}/combos/{comboId}": {
         parameters: {
             query?: never;
@@ -225,7 +249,7 @@ export interface paths {
          * Cambia un combo
          * @description Gerentes y dueño.
          */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -245,7 +269,7 @@ export interface paths {
          * Cambia los datos de una sucursal
          * @description Solo el dueño.
          */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1308,6 +1332,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/businesses/{businessId}/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Busca clientes
+         * @description Gerentes y dueño. Por nombre, email o teléfono (por partes y sin tildes); sin q, todos. Con cuántos turnos tuvo cada uno y el último.
+         */
+        get: operations["search_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/businesses/{businessId}/barbers/{barberId}/services": {
         parameters: {
             query?: never;
@@ -1614,6 +1658,66 @@ export interface components {
         AssignBranches: {
             branchIds: string[];
         };
+        CustomerData: {
+            name: string;
+            email?: string;
+            phone?: string;
+        };
+        CustomerUpdate: {
+            contact: components["schemas"]["CustomerData"];
+            notes?: string;
+            preferences?: string;
+        };
+        AppointmentView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            branchId: string;
+            branchName: string;
+            timeZone: string;
+            /** Format: uuid */
+            barberId: string;
+            barberName: string;
+            status: string;
+            source: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            totalPrice: number;
+            lines: components["schemas"]["LineView"][];
+            /** Format: uuid */
+            comboId: string;
+            customer: components["schemas"]["CustomerView"];
+        };
+        CustomerDetailView: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+            notes: string;
+            preferences: string;
+            hasAccount: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            history: components["schemas"]["AppointmentView"][];
+        };
+        CustomerView: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+        };
+        LineView: {
+            /** Format: uuid */
+            serviceId: string;
+            serviceName: string;
+            price: number;
+            /** Format: int32 */
+            durationMinutes: number;
+        };
         ComboData: {
             name: string;
             serviceIds: string[];
@@ -1908,11 +2012,6 @@ export interface components {
             customer?: components["schemas"]["CustomerData"];
             confirmed?: boolean;
         };
-        CustomerData: {
-            name: string;
-            email?: string;
-            phone?: string;
-        };
         Account: {
             /** Format: uuid */
             id: string;
@@ -2119,6 +2218,28 @@ export interface components {
             /** Format: int32 */
             totalPages: number;
         };
+        CustomerSummaryView: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+            /** Format: int64 */
+            appointments: number;
+            /** Format: date-time */
+            lastAppointmentAt: string;
+        };
+        PageResponseCustomerSummaryView: {
+            items: components["schemas"]["CustomerSummaryView"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int64 */
+            totalItems: number;
+            /** Format: int32 */
+            totalPages: number;
+        };
         PageResponseCombo: {
             items: components["schemas"]["Combo"][];
             /** Format: int32 */
@@ -2156,24 +2277,24 @@ export interface components {
             object: boolean;
             float: boolean;
             number: boolean;
-            string: boolean;
-            missingNode: boolean;
-            valueNode: boolean;
-            floatingPointNumber: boolean;
-            container: boolean;
-            /** @enum {string} */
-            nodeType: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
-            integralNumber: boolean;
-            binary: boolean;
-            /** @deprecated */
-            textual: boolean;
             boolean: boolean;
             short: boolean;
+            string: boolean;
+            int: boolean;
+            long: boolean;
             double: boolean;
             pojo: boolean;
-            long: boolean;
-            int: boolean;
+            /** @deprecated */
+            textual: boolean;
+            binary: boolean;
+            missingNode: boolean;
+            integralNumber: boolean;
+            valueNode: boolean;
+            container: boolean;
+            floatingPointNumber: boolean;
             bigInteger: boolean;
+            /** @enum {string} */
+            nodeType: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
             bigDecimal: boolean;
             embeddedValue: boolean;
         };
@@ -2561,7 +2682,57 @@ export interface operations {
             };
         };
     };
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                businessId: string;
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerDetailView"];
+                };
+            };
+        };
+    };
     update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                businessId: string;
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerDetailView"];
+                };
+            };
+        };
+    };
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2588,7 +2759,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4140,6 +4311,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PageResponseMember"];
+                };
+            };
+        };
+    };
+    search_1: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                businessId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseCustomerSummaryView"];
                 };
             };
         };

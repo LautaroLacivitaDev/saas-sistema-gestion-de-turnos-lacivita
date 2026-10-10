@@ -48,6 +48,36 @@ export function localDate(instant: Date, timeZone: string): string {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+/** Diferencia (en minutos) entre la hora de la zona y UTC en ese instante. */
+function offsetMinutes(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(instant);
+  const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const asUtc = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"));
+  return Math.round((asUtc - Math.floor(instant.getTime() / 60_000) * 60_000) / 60_000);
+}
+
+/**
+ * El instante (ISO, en UTC) de una fecha y hora de la sucursal: "2026-10-09" a las "10:00" en Buenos Aires
+ * es "2026-10-09T13:00:00.000Z". Sirve para mandar al backend lo que alguien eligió en la agenda.
+ */
+export function zonedInstant(date: string, hhmm: string, timeZone: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = hhmm.split(":").map(Number);
+  const wanted = Date.UTC(year, month - 1, day, hour, minute);
+  // Dos pasadas: el desfase de la zona puede cambiar justo en ese día (horario de verano).
+  let guess = wanted - offsetMinutes(new Date(wanted), timeZone) * 60_000;
+  guess = wanted - offsetMinutes(new Date(guess), timeZone) * 60_000;
+  return new Date(guess).toISOString();
+}
+
 /** Suma días a una fecha AAAA-MM-DD, sin zonas horarias de por medio. */
 export function addDays(date: string, days: number): string {
   const [year, month, day] = date.split("-").map(Number);
