@@ -1924,6 +1924,7 @@ export interface components {
             businessName: string;
             slug: string;
             role: string;
+            branchIds: string[];
         };
         Register: {
             name: string;
@@ -2277,25 +2278,25 @@ export interface components {
             object: boolean;
             float: boolean;
             number: boolean;
-            boolean: boolean;
-            short: boolean;
+            binary: boolean;
             string: boolean;
             int: boolean;
             long: boolean;
+            boolean: boolean;
+            short: boolean;
             double: boolean;
             pojo: boolean;
             /** @deprecated */
             textual: boolean;
-            binary: boolean;
-            missingNode: boolean;
-            integralNumber: boolean;
-            valueNode: boolean;
             container: boolean;
-            floatingPointNumber: boolean;
-            bigInteger: boolean;
+            valueNode: boolean;
+            integralNumber: boolean;
+            missingNode: boolean;
             /** @enum {string} */
             nodeType: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
+            bigInteger: boolean;
             bigDecimal: boolean;
+            floatingPointNumber: boolean;
             embeddedValue: boolean;
         };
         PageResponseAuditEntryView: {

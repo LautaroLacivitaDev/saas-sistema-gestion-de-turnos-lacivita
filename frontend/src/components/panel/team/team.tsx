@@ -11,26 +11,13 @@ import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/errors";
 import type { Invitation, Member, Page } from "@/lib/api/types";
 import { dateTime } from "@/lib/format";
-import { panelKey, useMembers, usePanel } from "@/lib/panel";
+import { panelKey, useManagedBranches, useMembers, usePanel } from "@/lib/panel";
 import { messages } from "@/messages/es-AR";
 
 import { InviteSheet } from "./invite-sheet";
 import { MemberSheet } from "./member-sheet";
 
 const t = messages.panel.team;
-
-/**
- * Sucursales en las que quien ingresó puede gestionar al equipo: todas para el dueño, las propias para el
- * gerente. Es la misma regla que aplica el servidor; acá solo evita ofrecer lo que se va a rechazar.
- */
-export function useManagedBranches(members: Member[] | undefined) {
-  const panel = usePanel();
-  if (panel.can("OWNER")) {
-    return panel.branches;
-  }
-  const mine = new Set(members?.find((member) => member.userId === panel.userId)?.branchIds ?? []);
-  return panel.branches.filter((branch) => mine.has(branch.id));
-}
 
 /** Si quien ingresó puede editar o dar de baja a ese miembro. */
 export function canManage(member: Member, actorIsOwner: boolean, managed: Set<string>) {
@@ -57,7 +44,7 @@ export function useRefreshTeam() {
 export function Team() {
   const panel = usePanel();
   const members = useMembers(panel.businessId);
-  const managed = useManagedBranches(members.data);
+  const managed = useManagedBranches();
   const [editing, setEditing] = useState<Member | null>(null);
   const [inviting, setInviting] = useState(false);
   const managedIds = new Set(managed.map((branch) => branch.id));

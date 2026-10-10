@@ -52,11 +52,26 @@ export function useBranches(businessId: string) {
   });
 }
 
-export function useMembers(businessId: string) {
+/** El equipo con sus roles y sucursales. Solo lo pueden pedir el dueño y los gerentes. */
+export function useMembers(businessId: string, enabled = true) {
   return useQuery({
     queryKey: ["panel", businessId, "members"],
     queryFn: async () => (await api<Page<Member>>(`/api/businesses/${businessId}/members?size=100`)).items,
+    enabled,
   });
+}
+
+/**
+ * Sucursales que gestiona quien ingresó: todas para el dueño, las suyas para el resto. Es la misma regla que
+ * aplica el servidor; acá solo evita ofrecer lo que se va a rechazar.
+ */
+export function useManagedBranches(): Branch[] {
+  const panel = usePanel();
+  if (panel.can("OWNER")) {
+    return panel.branches;
+  }
+  const mine = new Set(panel.membership.branchIds);
+  return panel.branches.filter((branch) => mine.has(branch.id));
 }
 
 /** Clave de las consultas de un negocio, para invalidarlas juntas después de un cambio. */
