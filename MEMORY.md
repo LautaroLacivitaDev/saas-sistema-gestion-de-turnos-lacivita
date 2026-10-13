@@ -3,50 +3,44 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decisiones.md`.
 ## Estado actual
 - La app se llama **Laciturnos** (interfaz, emails, docs). Paquete, base y contenedores siguen `turnos`.
-- Hitos 1 a 9 terminados (2026-10-09). Hito 9: panel (agenda Día/Semana, clientes, catálogo, equipo,
-  sucursales, horarios, perfil, avisos, ajustes y onboarding `/panel/nuevo`). Backend 353, frontend 32.
-- **Mobile first**: la app se usa sobre todo desde el celular. Reglas en AGENTS.md; cada pantalla
-  se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
+- Hitos 1 a 9 terminados. Hito 10 (2026-10-13) listo para publicar: modo demo, Playwright, k6, PWA,
+  observabilidad, revisión de seguridad, Dockerfile y `render.yaml`. Falta que el usuario cree las
+  cuentas (Neon, Render, Vercel, Turnstile) y cargue las variables (README, "Publicación").
+- **Portfolio**: Vercel + Render (Docker) + Neon, sin dominio propio. Perfil `demo`: emails al buzón
+  `/demo/emails`, "Barbería El Faro" de ejemplo (se reinicia en cada arranque), cuentas con `demo1234`.
+- **Mobile first**: cada pantalla se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
 - Login con Google probado solo con proveedor simulado; para Google real faltan credenciales OAuth.
-- Próximo: Hito 10 (producción, modo demo y datos de ejemplo para el portfolio).
 - Repo: https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita
 ## Decisiones (y por qué)
 - Roles en dos niveles: Spring Security solo `ADMIN`/`USER`; `OWNER`/`MANAGER`/`BARBER` por
   membresía, vía `BusinessMembershipResolver` (shared) que implementa `users`.
 - Sesión en PostgreSQL (Spring Session JDBC): servidores sin estado; lo que va en ella es `Serializable`.
-- Aislamiento en dos barreras: `@TenantId` de Hibernate + RLS. La app usa `turnos_app` (sin
-  privilegios), Flyway el dueño. `TenantContext` (negocio, persona, sistema) se fija antes de la
-  transacción con `@BusinessScoped`; la persona la fija `SignedInUserScopeFilter`.
-- Cruzar negocios solo con `TenantContext.callAsSystem(motivo, …)`.
-- Auditoría síncrona en la misma transacción; el acceso de soporte exige `X-Support-Reason`.
-- Tokens de email: solo el SHA-256. Avisos de turnos por la bandeja `notification` (misma
-  transacción, se arman al enviar); emails de cuenta y código del invitado, directo y sin reintentos.
+- Aislamiento: `@TenantId` + RLS. La app usa `turnos_app` (sin privilegios), Flyway el dueño.
+  `TenantContext` se fija antes de la transacción con `@BusinessScoped`. Cruzar negocios solo con
+  `TenantContext.callAsSystem(motivo, …)`. Neon por conexión directa (el pooler compartiría el contexto).
+- Tokens de email: solo el SHA-256. Avisos de turnos por la bandeja `notification`; emails de cuenta
+  y código del invitado, directo y sin reintentos. En demo, ambos van a `demo_email`.
 - JobRunr 8.8.2: sus tablas las crea Flyway (V14, `skip-create`); al actualizarlo, migrar a mano.
-- Entre módulos: consultas por la API pública (`TeamDirectory`, `BusinessDirectory`) y efectos
-  por eventos síncronos en la misma transacción (`MemberLeft`), así heredan el `TenantContext`.
-- Agenda: los turnos tomados entran por `BookedTimes` (lo implementa `booking`); la disponibilidad
-  cruza horario del profesional y de la sucursal, y los arma en hora local con la zona de la sucursal.
-- Precios: un barbero fuera del rango deja un pedido y rige su precio anterior; gerente y dueño
-  aplican directo. Combo = suma de las condiciones de un mismo profesional.
-- Rate limit por IP en memoria (Caffeine + Bucket4j); distribuido si hace falta en Hito 10.
+- Entre módulos: consultas por la API pública y efectos por eventos síncronos (heredan el contexto).
+- Agenda: escrituras serializadas por profesional (`pg_advisory_xact_lock` por el `EntityManager`);
+  la restricción de exclusión sigue impidiendo la doble reserva.
+- Detrás de Vercel se confía en `X-Forwarded-For` (límite de intentos por visitante).
 ## Aprendizajes y errores a evitar
 - Nunca editar una migración ya commiteada, ni un comentario: Flyway valida el checksum.
 - PostgreSQL de Docker va en el 5433: la PC ya tiene otro PostgreSQL en el 5432.
 - Boot 4: anotaciones de prueba web en `org.springframework.boot.webmvc.test.autoconfigure`;
   `server.servlet.session.cookie.*` no se aplica a Spring Session (bean `CookieSerializer`).
-- Hibernate valida tipos: `VARCHAR`, no `CHAR`, para columnas `String`.
-- Nunca leer `SecurityContextHolder` al entregar una conexión: carga la sesión desde la base,
-  pide otra conexión y agota el pool (se diagnosticó con `leak-detection-threshold` de Hikari).
+- Nunca leer `SecurityContextHolder` al entregar una conexión: agota el pool.
 - Id propio: `@Version Long` (no `long`) o `Persistable`, si no Spring Data hace `merge` en las altas.
-- Entidad ya cargada: `flush()`, no `saveAndFlush` (el `merge` falla con hijos nuevos).
 - `csrf()` de Spring Security Test cambia el filtro del contexto compartido: usar `SpaCsrf`.
-- Constantes `static final` que usa el constructor van ANTES de las que crean instancias
-  (pasó dos veces: `Money.ZERO` y `ScheduleRules.DEFAULT`). Propuesto pasarlo a AGENTS.md.
-- Flyway "more than one migration with version": migración vieja en `target/`, `mvnw clean verify`.
-- Si en `npm run dev` un cambio no se ve o una página queda en "Cargando…" (el contenido llega pero
-  no se muestra), borrar `.next/` y reiniciar: es la caché de Turbopack, no un error del código.
+- Constantes `static final` que usa el constructor van ANTES de las que crean instancias.
+- Horas: con `jdbc.time_zone: UTC` Hibernate corría los `LocalTime` según la zona de la JVM; ahora
+  `java_time_use_direct_jdbc` y las pruebas corren en zona de Buenos Aires para que CI lo detecte.
+- SQL de Flyway en `INSERT … SELECT`: castear literales (`'…'::UUID`, `'10:00'::TIME`).
+- El CSRF del frontend repite el valor de la cookie `XSRF-TOKEN` (no el `token` de `/api/auth/csrf`).
+- Si una página queda en "Cargando…" en desarrollo: borrar `.next/`, o el panel del navegador de
+  Claude está oculto (suspende la red; reabrir con `preview_start`).
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
-- Panel del navegador de Claude oculto: suspende la red y la página queda en "Cargando…". Reabrir
-  con `preview_start` (no es un error de la app).
 ## Próximos pasos
-- Proyecto de portfolio (2026-10-09): sin dominio propio; en Hito 10, modo demo de emails y datos de ejemplo.
+- Publicar siguiendo el README (sección "Publicación") y probar la demo en el celular real.
+- Opcional: Content-Security-Policy con nonce; Google real; dominio propio y Resend si deja de ser demo.

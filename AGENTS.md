@@ -109,6 +109,10 @@ Documentar siempre la variante de Windows (`mvnw.cmd`) y la de Unix (`./mvnw`). 
 | Frontend en desarrollo | `npm run dev` | `npm run dev` |
 | Lint, tipos, pruebas y build del frontend | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` | igual |
 | Regenerar los tipos de la API (con el backend corriendo) | `npm run api:types` | `npm run api:types` |
+| Backend en modo demo (buzón de emails y datos de ejemplo) | `mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev,demo` | `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo` |
+| Pruebas de punta a punta (backend en modo demo y frontend con `NEXT_PUBLIC_DEMO_MODE=true`) | `npm run e2e` | `npm run e2e` |
+| Prueba de carga del mismo horario (ver README) | `docker run --rm -i grafana/k6:1.3.0 run - < load/same-slot.js` | igual |
+| Imagen del backend para producción | `docker build -t laciturnos-backend backend` | igual |
 
 Direcciones en desarrollo: API en http://localhost:8080/api, Swagger UI en http://localhost:8080/api/docs, frontend en http://localhost:3000, Mailpit en http://localhost:8025.
 

@@ -308,6 +308,90 @@ La conexión exige TLS. El registro de envíos marca `SENT` cuando Resend acepta
 
 Las tablas de JobRunr las crea Flyway (`V14`). Al actualizar JobRunr, revisar si trae migraciones nuevas y agregarlas en una migración propia.
 
+## Modo demo (portfolio)
+
+Laciturnos se publica como proyecto de portfolio. En el modo demo:
+
+- **Los emails no se envían**: quedan en el buzón de la demo (`/demo/emails`), con su HTML, sus links y el `.ics`. Donde la app dice "te mandamos un email" aparece un atajo al buzón. Cualquiera que escriba una dirección ve sus emails: la página pide usar direcciones inventadas. Se borran a los 3 días.
+- **Datos de ejemplo**: "Barbería El Faro" (`/barberia-el-faro`) con dos sucursales, tres profesionales, servicios, un combo, clientes y turnos alrededor de hoy. Se reinicia en cada arranque del backend.
+- **Cuentas de ejemplo** (contraseña `demo1234`, pública a propósito), con "Entrar" de un toque en `/demo`:
+
+| Cuenta | Rol |
+|---|---|
+| `duena.demo@example.com` | Dueña |
+| `gerente.demo@example.com` | Gerente de las dos sucursales |
+| `nico.demo@example.com`, `juli.demo@example.com`, `sofi.demo@example.com` | Profesionales |
+| `cliente.demo@example.com` | Cliente con turnos |
+
+Se activa con el perfil `demo` del backend (se suma a otro: `prod,demo` o `dev,demo`) y `NEXT_PUBLIC_DEMO_MODE=true` en el frontend:
+
+```bash
+# Backend en modo demo, en la PC
+cd backend
+mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev,demo     # Windows
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo       # macOS / Linux
+```
+
+Los datos de ejemplo están en `backend/src/main/resources/db/demo/R__demo_data.sql`: una migración repetible de Flyway que solo se suma con el perfil `demo`.
+
+## Pruebas de punta a punta y de carga
+
+Las pruebas de punta a punta (Playwright, en `frontend/e2e/`) corren en un celular (Pixel 7) y en escritorio contra la app en modo demo: reserva como invitado con el código del buzón, entrada al panel con la cuenta de ejemplo y ausencia de scroll horizontal a 320 px. Con el backend (`dev,demo`) y el frontend (`NEXT_PUBLIC_DEMO_MODE=true`) corriendo:
+
+```bash
+cd frontend
+npx playwright install chromium   # la primera vez
+npm run e2e
+```
+
+En CI corren en el job "Punta a punta".
+
+La prueba de carga (k6, `load/same-slot.js`) manda a 100 personas a tomar el mismo horario a la vez: tiene que ganar una sola y el resto recibir 409, sin errores. Como todos los pedidos salen de la misma IP, el backend se levanta con un límite de intentos alto:
+
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo "-Dspring-boot.run.arguments=--app.rate-limit.requests-per-minute=100000"
+# en otra terminal, desde la raíz
+docker run --rm -i --add-host=host.docker.internal:host-gateway grafana/k6:1.3.0 run -e BASE_URL=http://host.docker.internal:8080 - < load/same-slot.js
+```
+
+## Publicación (Vercel + Render + Neon)
+
+Gratis y en los subdominios de cada servicio: el frontend en Vercel, el backend (Docker) en Render y PostgreSQL en Neon. El navegador habla solo con Vercel; Vercel pasa `/api/*` al backend, así la cookie de sesión queda en un solo dominio.
+
+1. **Neon** (base de datos). Crear un proyecto en la región *AWS US East 1 (N. Virginia)* con PostgreSQL 17. En el **SQL Editor**, crear el rol de la aplicación (sin privilegios, así le aplica Row Level Security) con una contraseña larga:
+
+   ```sql
+   CREATE ROLE turnos_app LOGIN PASSWORD '<contraseña>' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+   ```
+
+   Usar la conexión **directa** (el host *sin* `-pooler`): la aplicación fija el negocio de cada conexión y el pooler de Neon las comparte entre clientes. Las migraciones las corre el dueño de la base (`neondb_owner`).
+
+2. **Cloudflare Turnstile** (anti-bots de la reserva como invitado). En el panel de Cloudflare, **Turnstile → Add widget**, con el dominio `<proyecto>.vercel.app`. Da una clave pública (frontend) y una secreta (backend).
+
+3. **Render** (backend). **New → Blueprint** con este repositorio: toma `render.yaml` (Docker, plan gratis, perfiles `prod,demo`). Completar las variables:
+
+| Variable | Valor |
+|---|---|
+| `DATABASE_URL` | `jdbc:postgresql://<host directo de Neon>/neondb?sslmode=require` |
+| `DATABASE_PASSWORD` | La contraseña de `turnos_app` |
+| `FLYWAY_USERNAME`, `FLYWAY_PASSWORD` | `neondb_owner` y su contraseña (Neon → Connection details) |
+| `FRONTEND_URL` | `https://<proyecto>.vercel.app` |
+| `TURNSTILE_SECRET_KEY` | La clave secreta de Turnstile |
+
+   En el plan gratis el servicio se duerme a los 15 minutos sin uso: la primera visita después tarda alrededor de un minuto. Al despertar, la demo vuelve a sus datos de ejemplo.
+
+4. **Vercel** (frontend). **Add New → Project** con este repositorio, **Root Directory** `frontend`. Variables de entorno:
+
+| Variable | Valor |
+|---|---|
+| `BACKEND_URL` | `https://laciturnos-api.onrender.com` (la URL que da Render) |
+| `NEXT_PUBLIC_SITE_URL` | `https://<proyecto>.vercel.app` |
+| `NEXT_PUBLIC_DEMO_MODE` | `true` |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | La clave pública de Turnstile |
+
+Cada push a `main` vuelve a publicar los dos. Para un uso real (fuera de la demo): sacar `demo` de `SPRING_PROFILES_ACTIVE` y `NEXT_PUBLIC_DEMO_MODE`, y configurar Resend (ver "Emails en producción").
+
 ## Pruebas
 
 ```bash
