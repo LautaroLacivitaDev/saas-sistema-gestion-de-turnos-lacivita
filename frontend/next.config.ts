@@ -15,6 +15,21 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Encabezados de seguridad de todas las páginas. Vercel ya agrega HSTS. Sin Content-Security-Policy por
+  // ahora: Next necesita un nonce por pedido para sus scripts en línea (ver docs/decisiones.md, Hito 10).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
