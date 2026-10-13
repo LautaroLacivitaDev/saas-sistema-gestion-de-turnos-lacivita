@@ -7,6 +7,7 @@ import com.lacivita.turnos.ApiClient;
 import com.lacivita.turnos.ApiClient.Session;
 import com.lacivita.turnos.IntegrationTest;
 import com.lacivita.turnos.RecordingMailer;
+import com.lacivita.turnos.shared.tenancy.TenantContext;
 import java.io.UnsupportedEncodingException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
@@ -41,6 +43,9 @@ class ScheduleApiIntegrationTests {
 
     @Autowired
     RecordingMailer mailer;
+
+    @Autowired
+    JdbcClient jdbc;
 
     ApiClient api;
     Session owner;
@@ -95,6 +100,22 @@ class ScheduleApiIntegrationTests {
                     .isEqualTo("outside_your_branches");
             assertThat(setBranchHours(barber, centro, mondays("09:00", "18:00")))
                     .hasStatus(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void hoursAreStoredAsWrittenWhateverTheServerTimeZone() {
+            // Las horas son de la sucursal: no deben correrse con la zona horaria de la JVM. Antes se
+            // guardaban convertidas (las 09:00 quedaban 12:00 en una PC de Argentina) y, en un servidor en
+            // UTC, el mismo horario se leía tres horas corrido.
+            setBranchHours(owner, centro, mondays("09:00", "18:00"));
+
+            String stored = TenantContext.callAsSystem(
+                    "prueba: leer la hora guardada",
+                    () -> jdbc.sql("SELECT starts_at::TEXT FROM branch_opening WHERE branch_id = ?")
+                            .param(centro)
+                            .query(String.class)
+                            .single());
+            assertThat(stored).isEqualTo("09:00:00");
         }
 
         @Test

@@ -17,6 +17,10 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+        type:
+          # Las horas (LocalTime) y fechas (LocalDate) van tal cual al driver, sin pasar por la zona de la JVM:
+          # si no, con time_zone UTC las 09:00 se guardaban corridas según la zona del servidor.
+          java_time_use_direct_jdbc: true
   flyway:
     locations: classpath:db/migration
     placeholders:

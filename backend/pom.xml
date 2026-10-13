@@ -26,6 +26,8 @@
         <jobrunr.version>8.8.2</jobrunr.version>
         <spotless.version>3.10.3</spotless.version>
         <palantir-java-format.version>2.102.0</palantir-java-format.version>
+        <!-- Base del argLine de Surefire (lo completan otros plugins, si los hay). -->
+        <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -219,6 +221,15 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <!-- Las pruebas corren con una zona horaria que no es UTC (como una PC en Argentina), así un error que
+                     dependa de la zona de la JVM falla también en CI, que corre en UTC. -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} -Duser.timezone=America/Argentina/Buenos_Aires</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <!-- Los procesadores de anotaciones se declaran acá para que IntelliJ los tome al importar el proyecto. -->
