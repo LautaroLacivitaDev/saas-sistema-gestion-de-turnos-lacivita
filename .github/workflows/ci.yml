@@ -60,3 +60,75 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  e2e:
+    name: Punta a punta (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: turnos
+          POSTGRES_USER: turnos
+          POSTGRES_PASSWORD: turnos
+        # Mismo puerto que en desarrollo, así el backend usa el perfil "dev" sin cambios.
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U turnos -d turnos"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # El rol sin privilegios de la aplicación (en desarrollo lo crea docker/postgres/init).
+      - name: Rol de la aplicación
+        run: psql -h localhost -p 5433 -U turnos -d turnos -f docker/postgres/init/01-app-role.sql
+        env:
+          PGPASSWORD: turnos
+
+      # Backend en modo demo: los emails van al buzón de la demo y Flyway carga el negocio de ejemplo.
+      - name: Backend
+        working-directory: backend
+        run: |
+          ./mvnw -B -q package -DskipTests -Dspotless.check.skip=true
+          java -jar target/*.jar --spring.profiles.active=dev,demo > ../backend.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/actuator/health/readiness && break; sleep 3; done
+
+      - name: Frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_DEMO_MODE: "true"
+        run: |
+          npm ci
+          npm run build
+          npm start > ../frontend.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 2; done
+
+      - name: Playwright
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+
+      - name: Reportes y logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            frontend/playwright-report
+            backend.log
+            frontend.log
