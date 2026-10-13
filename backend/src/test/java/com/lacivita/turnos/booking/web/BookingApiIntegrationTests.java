@@ -20,11 +20,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -194,6 +196,31 @@ class BookingApiIntegrationTests {
             }
 
             assertThat(statuses).containsExactlyInAnyOrder(201, 409);
+        }
+
+        @Test
+        void manySimultaneousBookingsOfTheSameTimeGetAClearAnswer() throws Exception {
+            // Con muchas a la vez, PostgreSQL detectaba interbloqueos entre las que perdían y respondían 500.
+            int people = 20;
+            var start = new CountDownLatch(1);
+            Callable<Integer> booking = () -> {
+                start.await();
+                return hold(barber.userId(), "11:00").getResponse().getStatus();
+            };
+
+            List<Integer> statuses = new ArrayList<>();
+            try (var executor = Executors.newFixedThreadPool(people)) {
+                var attempts = IntStream.range(0, people)
+                        .mapToObj(i -> executor.submit(booking))
+                        .toList();
+                start.countDown();
+                for (var attempt : attempts) {
+                    statuses.add(attempt.get());
+                }
+            }
+
+            assertThat(statuses).containsOnly(201, 409);
+            assertThat(statuses).filteredOn(status -> status == 201).hasSize(1);
         }
 
         @Test
