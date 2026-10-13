@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   title: { default: messages.app.name, template: `%s · ${messages.app.name}` },
   description: messages.app.description,
   openGraph: { siteName: messages.app.name, locale: "es_AR", type: "website" },
+  icons: { apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: messages.app.name, statusBarStyle: "default" },
 };
 
 // Mobile first: la mayoría entra desde el celular. No se bloquea el zoom (accesibilidad) y
@@ -31,6 +33,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

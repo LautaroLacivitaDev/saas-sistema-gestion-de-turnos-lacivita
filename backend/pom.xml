@@ -221,6 +221,14 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- Versión y fecha del build en /actuator/info: para saber qué está publicado. -->
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <!-- Las pruebas corren con una zona horaria que no es UTC (como una PC en Argentina), así un error que

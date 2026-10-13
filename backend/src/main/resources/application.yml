@@ -85,7 +85,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        # health e info son públicos (los usa el hosting); metrics, solo para administradores de la plataforma.
+        include: health, info, metrics
   endpoint:
     health:
       probes:

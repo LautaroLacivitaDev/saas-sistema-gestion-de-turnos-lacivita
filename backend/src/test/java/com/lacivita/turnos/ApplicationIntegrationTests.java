@@ -36,6 +36,23 @@ class ApplicationIntegrationTests {
     }
 
     @Test
+    void metricsAreOnlyForPlatformAdmins() {
+        var person = new ApiClient(mvc).registerNewUser("Persona");
+
+        assertThat(mvc.get().uri("/actuator/metrics")).hasStatus(HttpStatus.UNAUTHORIZED);
+        assertThat(mvc.get().uri("/actuator/metrics").cookie(person.cookie())).hasStatus(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void buildInfoIsPublished() {
+        assertThat(mvc.get().uri("/actuator/info"))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.build.version")
+                .isNotNull();
+    }
+
+    @Test
     void openApiDocumentIsPublished() {
         assertThat(mvc.get().uri("/api/openapi")).hasStatusOk();
     }
