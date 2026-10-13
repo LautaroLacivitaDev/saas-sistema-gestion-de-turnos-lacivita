@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Field } from "@/components/field";
+import { DemoInboxLink } from "@/components/demo/inbox-link";
 import { Notice } from "@/components/notice";
 import { Button } from "@/components/ui/button";
 import { useRefreshAccount } from "@/lib/account";
@@ -65,6 +66,7 @@ export function SignInForm() {
           {...linkForm.register("email")}
         />
         {sendLink.isSuccess && <Notice tone="success">{t.linkSent}</Notice>}
+        {sendLink.isSuccess && <DemoInboxLink email={sendLink.variables} />}
         {sendLink.isError && <Notice tone="error">{errorMessage(sendLink.error)}</Notice>}
         <Button type="submit" size="touch" disabled={sendLink.isPending}>
           {t.sendLink}

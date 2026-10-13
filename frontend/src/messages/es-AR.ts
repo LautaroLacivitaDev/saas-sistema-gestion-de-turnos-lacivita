@@ -6,6 +6,34 @@ export const messages = {
     description:
       "Reservá tu turno en barberías y centros de estética, sin llamadas ni esperas.",
   },
+  demo: {
+    banner: "Esto es una demo: los emails no se envían.",
+    bannerLink: "Probala acá",
+    title: "Probá Laciturnos",
+    intro:
+      "Laciturnos es un proyecto de portfolio. Todo funciona de verdad, pero los emails no se envían: quedan en el buzón de la demo. Los datos de ejemplo se reinician cada tanto.",
+    accounts: "Entrá con una cuenta de ejemplo",
+    accountsHint: (password: string) => `Todas usan la contraseña ${password}. Son de "Barbería El Faro".`,
+    roles: {
+      OWNER: "Dueña",
+      MANAGER: "Gerente",
+      BARBER: "Profesional",
+      CUSTOMER: "Cliente",
+    } as Record<string, string>,
+    enter: "Entrar",
+    entering: "Entrando…",
+    business: "Ver la página de Barbería El Faro",
+    inbox: "Buzón de la demo",
+    inboxHint:
+      "Escribí la dirección que usaste (al reservar, registrarte o pedir un link) para ver sus emails. No uses tu email real: cualquiera que escriba la misma dirección ve estos emails.",
+    inboxEmail: "Email",
+    open: "Ver emails",
+    empty: "No hay emails para esa dirección. Los emails se borran a los 3 días.",
+    calendar: "Agregar al calendario (.ics)",
+    showText: "Ver como texto",
+    seeInInbox: "Es una demo: el email está en el buzón de la demo",
+    notEnabled: "La demo no está activa en este sitio.",
+  },
   nav: {
     home: "Inicio",
     search: "Buscar",

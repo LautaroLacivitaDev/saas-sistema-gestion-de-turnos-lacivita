@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { BottomBar, BottomBarSpacer } from "@/components/bottom-bar";
 import { Field } from "@/components/field";
+import { DemoInboxLink } from "@/components/demo/inbox-link";
 import { Notice } from "@/components/notice";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "@/lib/account";
@@ -191,6 +192,7 @@ function GuestDetails({
         className="flex flex-col gap-4"
       >
         <Notice>{t.codeSent(sentTo)}</Notice>
+        <DemoInboxLink email={sentTo} />
         <Field
           id="code"
           label={t.code}
