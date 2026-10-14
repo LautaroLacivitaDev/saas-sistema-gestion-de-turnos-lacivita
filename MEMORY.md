@@ -3,9 +3,8 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decisiones.md`.
 ## Estado actual
 - La app se llama **Laciturnos** (interfaz, emails, docs). Paquete, base y contenedores siguen `turnos`.
-- Hitos 1 a 9 terminados. Hito 10 (2026-10-13) listo para publicar: modo demo, Playwright, k6, PWA,
-  observabilidad, revisión de seguridad, Dockerfile y `render.yaml`. Falta que el usuario cree las
-  cuentas (Neon, Render, Vercel, Turnstile) y cargue las variables (README, "Publicación").
+- MVP terminado (Hitos 1 a 10). Publicado el 2026-10-14: https://laciturnos.vercel.app (frontend) y
+  https://laciturnos-api.onrender.com (backend). Render se duerme sin uso: la primera visita tarda ~1 min.
 - **Portfolio**: Vercel + Render (Docker) + Neon, sin dominio propio. Perfil `demo`: emails al buzón
   `/demo/emails`, "Barbería El Faro" de ejemplo (se reinicia en cada arranque), cuentas con `demo1234`.
 - **Mobile first**: cada pantalla se prueba a 320 y 375 px y en escritorio antes de cerrar un hito.
@@ -42,5 +41,6 @@ aporte. Plan completo en `docs/plan-mvp.md`; todas las decisiones en `docs/decis
   Claude está oculto (suspende la red; reabrir con `preview_start`).
 - Next.js 16 cambió APIs: leer `frontend/node_modules/next/dist/docs/` antes de escribir.
 ## Próximos pasos
-- Publicar siguiendo el README (sección "Publicación") y probar la demo en el celular real.
+- Probar la demo en el celular real (la reserva como invitado pasa por Turnstile: no se automatiza).
+- En Neon, `turnos_app` se crea por SQL; su contraseña se cambia con Roles → Reset password (copiar a Render).
 - Opcional: Content-Security-Policy con nonce; Google real; dominio propio y Resend si deja de ser demo.
