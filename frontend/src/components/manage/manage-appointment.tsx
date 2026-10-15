@@ -10,6 +10,7 @@ import { SlotGrid } from "@/components/booking/slot-grid";
 import { useAvailability } from "@/components/booking/time-step";
 import { Notice } from "@/components/notice";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useAccount } from "@/lib/account";
 import { api } from "@/lib/api/client";
 import { ApiError, errorMessage } from "@/lib/api/errors";
 import type { BookableItem, ManagedAppointment, Slot } from "@/lib/api/types";
@@ -37,6 +38,7 @@ export function ManageAppointment() {
   const token = searchParams.get("token") ?? "";
   const action = searchParams.get("accion");
   const client = useQueryClient();
+  const account = useAccount();
   const now = useNow();
   const key = ["managed", token];
 
@@ -56,6 +58,8 @@ export function ManageAppointment() {
       api<ManagedAppointment>(`/api/public/appointments/${path}`, { method: "POST", body: { token, ...body } }),
     onSuccess: (updated, { path }) => {
       client.setQueryData(key, updated);
+      // Si llegó desde "Mis turnos", la lista tiene que mostrar el cambio al volver.
+      void client.invalidateQueries({ queryKey: ["my-appointments"] });
       setPanel("none");
       setDone(path === "confirm" ? t.confirmed : path === "cancel" ? t.cancelled : t.rescheduled);
     },
@@ -179,6 +183,12 @@ export function ManageAppointment() {
       {!upcoming && (
         <Link href={`/${slug}`} className={buttonVariants({ size: "touch", className: "self-start" })}>
           {t.bookAgain}
+        </Link>
+      )}
+
+      {account.data && (
+        <Link href="/mis-turnos" className={buttonVariants({ variant: "ghost", size: "touch", className: "self-start" })}>
+          {t.backToMine}
         </Link>
       )}
     </div>

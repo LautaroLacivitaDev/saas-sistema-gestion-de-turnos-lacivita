@@ -78,6 +78,34 @@ class AccountHistoryIntegrationTests {
         assertThat(api.get(null, "/api/me/appointments")).hasStatus(HttpStatus.UNAUTHORIZED);
     }
 
+    @Test
+    void aCustomerOpensTheManagePageOfTheirAppointmentFromTheAccountAndCancelsIt() {
+        new Shop("Barbería Oeste").bookAs(client, 3, "10:00");
+        String appointmentId = ApiClient.read(api.get(client, "/api/me/appointments"), "$[0].appointment.id");
+
+        var link = api.post(client, "/api/me/appointments/" + appointmentId + "/manage-link", "{}");
+        assertThat(link).hasStatusOk();
+        String token = ApiClient.read(link, "$.token");
+
+        assertThat(api.post(null, "/api/public/appointments/cancel", "{\"token\":\"%s\"}".formatted(token)))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.appointment.status")
+                .isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void nobodyElseGetsTheManageLinkOfAnAppointment() {
+        new Shop("Barbería Centro").bookAs(client, 3, "11:00");
+        String appointmentId = ApiClient.read(api.get(client, "/api/me/appointments"), "$[0].appointment.id");
+        var stranger = api.registerNewUser("Otra persona");
+
+        assertThat(api.post(stranger, "/api/me/appointments/" + appointmentId + "/manage-link", "{}"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(api.post(null, "/api/me/appointments/" + appointmentId + "/manage-link", "{}"))
+                .hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
     /** Un negocio donde la dueña atiende todos los días de 9 a 18. */
     private final class Shop {
 

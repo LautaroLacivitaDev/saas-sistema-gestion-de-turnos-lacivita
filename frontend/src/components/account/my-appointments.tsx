@@ -111,9 +111,8 @@ export function MyAppointments() {
             {upcoming.length === 0 ? (
               <p className="text-muted-foreground">{t.noUpcoming}</p>
             ) : (
-              <AppointmentList entries={upcoming} />
+              <AppointmentList entries={upcoming} manageable />
             )}
-            {upcoming.length > 0 && <p className="text-sm text-muted-foreground">{t.manageHint}</p>}
           </section>
           {past.length > 0 && (
             <section className="flex flex-col gap-3" aria-labelledby="anteriores">
@@ -129,7 +128,28 @@ export function MyAppointments() {
   );
 }
 
-function AppointmentList({ entries }: { entries: AccountAppointment[] }) {
+/**
+ * Abre la gestión del turno (la misma página que el link del email): el backend comprueba que es de la
+ * cuenta y emite un link nuevo. Ahí rigen el plazo y las reglas del negocio para cambiarlo o cancelarlo.
+ */
+function ManageButton({ appointmentId }: { appointmentId: string }) {
+  const router = useRouter();
+  const open = useMutation({
+    mutationFn: () =>
+      api<{ token: string }>(`/api/me/appointments/${appointmentId}/manage-link`, { method: "POST" }),
+    onSuccess: ({ token }) => router.push(`/turno?token=${encodeURIComponent(token)}`),
+  });
+  return (
+    <>
+      <Button size="touch" disabled={open.isPending} onClick={() => open.mutate()}>
+        {open.isPending ? t.opening : t.manage}
+      </Button>
+      {open.isError && <Notice tone="error">{errorMessage(open.error)}</Notice>}
+    </>
+  );
+}
+
+function AppointmentList({ entries, manageable = false }: { entries: AccountAppointment[]; manageable?: boolean }) {
   return (
     <ul className="flex flex-col gap-3">
       {entries.map((entry) => {
@@ -157,12 +177,12 @@ function AppointmentList({ entries }: { entries: AccountAppointment[] }) {
               {dateTime(appointment.startsAt, appointment.timeZone)} · {appointment.branchName} ·{" "}
               {money(appointment.totalPrice)}
             </p>
-            <Link
-              href={repeatHref(entry)}
-              className={buttonVariants({ variant: "outline", size: "touch", className: "self-start" })}
-            >
-              {t.repeat}
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              {manageable && <ManageButton appointmentId={appointment.id} />}
+              <Link href={repeatHref(entry)} className={buttonVariants({ variant: "outline", size: "touch" })}>
+                {t.repeat}
+              </Link>
+            </div>
           </li>
         );
       })}

@@ -93,6 +93,15 @@ public interface AppointmentRepository extends Repository<Appointment, UUID> {
     List<AccountAppointment> findForAccount(
             @Param("userId") UUID userId, @Param("statuses") Collection<AppointmentStatus> statuses, Limit limit);
 
+    /** Un turno reservado con esa cuenta, en cualquier negocio. Vacío si no existe o es de otra persona. */
+    @Query("""
+            select a.businessId as businessId, a.id as appointmentId from Appointment a
+            where a.id = :appointmentId
+              and a.customerId in (select c.id from Customer c where c.userId = :userId)
+            """)
+    Optional<AccountAppointment> findForAccount(
+            @Param("userId") UUID userId, @Param("appointmentId") UUID appointmentId);
+
     /** Un turno de una cuenta, con el negocio al que pertenece. */
     interface AccountAppointment {
 

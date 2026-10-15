@@ -4,14 +4,11 @@ import com.lacivita.turnos.booking.AppointmentDetails;
 import com.lacivita.turnos.booking.AppointmentDirectory;
 import com.lacivita.turnos.booking.domain.Appointment;
 import com.lacivita.turnos.booking.domain.AppointmentLine;
-import com.lacivita.turnos.booking.domain.AppointmentLink;
-import com.lacivita.turnos.booking.domain.AppointmentLinkRepository;
 import com.lacivita.turnos.booking.domain.AppointmentRepository;
 import com.lacivita.turnos.booking.domain.AppointmentStatus;
 import com.lacivita.turnos.booking.domain.BookingPolicy;
 import com.lacivita.turnos.booking.domain.Customer;
 import com.lacivita.turnos.booking.domain.CustomerRepository;
-import com.lacivita.turnos.booking.domain.ManageToken;
 import com.lacivita.turnos.business.BranchSummary;
 import com.lacivita.turnos.business.BusinessDirectory;
 import com.lacivita.turnos.business.BusinessSummary;
@@ -23,7 +20,6 @@ import com.lacivita.turnos.users.TeamDirectory;
 import com.lacivita.turnos.users.TeamMember;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Collection;
@@ -45,28 +41,25 @@ class AppointmentDirectoryService implements AppointmentDirectory {
     static final String MANAGE_PATH = "/turno?token=";
 
     private final AppointmentRepository appointments;
-    private final AppointmentLinkRepository links;
+    private final ManageLinkIssuer links;
     private final CustomerRepository customers;
     private final BusinessDirectory businesses;
     private final TeamDirectory team;
     private final AppProperties properties;
-    private final Clock clock;
 
     AppointmentDirectoryService(
             AppointmentRepository appointments,
-            AppointmentLinkRepository links,
+            ManageLinkIssuer links,
             CustomerRepository customers,
             BusinessDirectory businesses,
             TeamDirectory team,
-            AppProperties properties,
-            Clock clock) {
+            AppProperties properties) {
         this.appointments = appointments;
         this.links = links;
         this.customers = customers;
         this.businesses = businesses;
         this.team = team;
         this.properties = properties;
-        this.clock = clock;
     }
 
     @Override
@@ -110,9 +103,7 @@ class AppointmentDirectoryService implements AppointmentDirectory {
     @BusinessScoped
     @Transactional
     public String newManageLink(@BusinessId UUID businessId, UUID appointmentId) {
-        var appointment = appointments.require(appointmentId);
-        var token = ManageToken.generate();
-        links.save(AppointmentLink.to(appointment, token, clock.instant()));
+        var token = links.issue(businessId, appointmentId);
         return properties.frontendLink(MANAGE_PATH + URLEncoder.encode(token.value(), StandardCharsets.UTF_8));
     }
 
