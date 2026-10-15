@@ -1,438 +1,133 @@
-# Laciturnos: gestión de turnos para barberías y estéticas
+# Laciturnos
 
-Plataforma SaaS para que barberías, centros de estética y negocios similares administren su agenda y reciban reservas online. Cada negocio tiene su página pública de reservas en `/{nombre-del-local}`.
+**Turnos online para barberías, centros de estética y negocios similares.** Cada negocio tiene su página pública para que sus clientes reserven desde el celular, y un panel para que el equipo maneje la agenda, los clientes, los servicios y los precios.
 
-- Especificación del MVP: [docs/especificacion-mvp.md](docs/especificacion-mvp.md)
-- Estado del proyecto y decisiones: [MEMORY.md](MEMORY.md)
-- Instrucciones para agentes de IA: [AGENTS.md](AGENTS.md)
+[![CI](https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita/actions/workflows/ci.yml/badge.svg)](https://github.com/LautaroLacivitaDev/saas-sistema-gestion-de-turnos-lacivita/actions/workflows/ci.yml)
 
-## Requisitos
+### 👉 [Probá la app: laciturnos.vercel.app](https://laciturnos.vercel.app)
 
-| Herramienta | Versión |
+> Es un proyecto de portfolio en modo demo: los emails no se envían, se ven en un buzón dentro de la app. Si nadie la usó en los últimos 15 minutos, la primera carga tarda alrededor de un minuto (el servidor gratuito se despierta).
+
+---
+
+## Cómo probarla en un minuto
+
+1. Entrá a **[laciturnos.vercel.app/demo](https://laciturnos.vercel.app/demo)** y tocá **Entrar** en la cuenta que quieras. Todas usan la contraseña `demo1234`:
+
+   | Cuenta | Qué ves |
+   |---|---|
+   | Dueña (`duena.demo@example.com`) | El panel completo: agenda, clientes, catálogo, equipo, sucursales, horarios y ajustes |
+   | Gerente (`gerente.demo@example.com`) | El panel de las sucursales que maneja |
+   | Profesional (`nico.demo@example.com`) | Su agenda, sus horarios, su perfil y sus avisos |
+   | Cliente (`cliente.demo@example.com`) | "Mis turnos": cambiar o cancelar, y repetir una reserva |
+
+2. Reservá como cualquier cliente en **[Barbería El Faro](https://laciturnos.vercel.app/barberia-el-faro)** con un email inventado. El código para confirmar llega al **[buzón de la demo](https://laciturnos.vercel.app/demo/emails)**, junto con el email de confirmación (con su `.ics` para el calendario).
+3. Entrá como Dueña y mirá cómo aparece tu turno en la agenda.
+
+Los datos de ejemplo vuelven a su estado inicial cada vez que el servidor arranca.
+
+## Capturas
+
+| Página del negocio | Elegir día y horario | Agenda (celular) | Buzón de la demo |
+|---|---|---|---|
+| ![Página pública de Barbería El Faro](docs/img/celular-negocio.png) | ![Paso de día y horario de la reserva](docs/img/celular-reserva.png) | ![Agenda del día en el panel](docs/img/celular-agenda.png) | ![Email de confirmación en el buzón de la demo](docs/img/celular-buzon.png) |
+
+![Agenda semanal del panel en escritorio](docs/img/escritorio-agenda.png)
+
+## Qué hace
+
+**Para los clientes**
+
+- Buscador de negocios que tolera errores de tipeo y tildes ("barbria palerno" encuentra "Barbería El Faro").
+- Página de cada negocio con servicios, combos, profesionales, sucursales con horarios, "Cómo llegar" y QR para compartir.
+- Reserva en tres pasos: servicio, día y horario (el horario queda guardado 5 minutos) y datos. Sin cuenta, con un código por email y verificación anti-bots; con cuenta, sin código.
+- Email de confirmación con el turno para agregar al calendario, recordatorios y botones para confirmar, cambiar o cancelar dentro del plazo del negocio.
+- "Mis turnos": próximos y anteriores en todos los negocios, cambiar o cancelar, y "repetir mi última reserva".
+
+**Para el negocio**
+
+- Varias sucursales, cada una con su horario, feriados, cierres y zona horaria.
+- Roles: dueño, gerente y profesional. Cada uno ve y hace solo lo que le corresponde.
+- Agenda por día o semana (Día por defecto en el celular), por sucursal y profesional, con turnos de mostrador y acciones según el estado (confirmar, empezar, terminar, no vino, mover, cancelar).
+- Cada profesional fija su precio y su duración dentro del rango que define el dueño; fuera de rango, el gerente aprueba.
+- Base de clientes con historial, notas y preferencias.
+- Invitaciones al equipo por email, avisos en la app y textos de los emails personalizables.
+- Alta guiada de un negocio nuevo en seis pasos.
+
+Todo está pensado primero para el celular: una columna, botones de al menos 44 px, letra de 16 px en los formularios y la acción principal al alcance del pulgar. Se instala como app (PWA).
+
+## Tecnologías
+
+| Capa | Tecnologías |
 |---|---|
-| JDK | 25 (Eclipse Temurin recomendado) |
-| Node.js | 24 |
-| Docker Desktop | Con WSL 2 en Windows. Tiene que estar corriendo para el entorno local y para las pruebas del backend |
-| Git | Cualquier versión reciente |
+| Backend | Java 25, Spring Boot 4.1, Spring Modulith, Spring Security (sesión en PostgreSQL), Spring Data JPA / Hibernate 7, Flyway, JobRunr, Thymeleaf (emails) |
+| Base de datos | PostgreSQL 17 con Row Level Security, restricciones de exclusión, `pg_trgm` y `unaccent` |
+| Frontend | Next.js 16 (App Router, Server Components), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, TanStack Query, React Hook Form + Zod |
+| Pruebas | JUnit 5, Testcontainers (PostgreSQL real), ArchUnit, Vitest, Playwright, k6 |
+| Infraestructura | Docker, GitHub Actions, Vercel, Render, Neon, Cloudflare Turnstile |
 
-## Puesta en marcha
+## Arquitectura
 
-### 1. Servicios locales
-
-```bash
-docker compose up -d
+```mermaid
+flowchart LR
+    U[Celular o navegador] --> V[Next.js en Vercel<br/>páginas del sitio y del panel]
+    V -- "/api/*" --> R[Spring Boot en Render<br/>monolito modular]
+    R --> N[(PostgreSQL en Neon<br/>RLS por negocio)]
+    R -. emails .-> B[Buzón de la demo<br/>o proveedor SMTP]
 ```
 
-| Servicio | Dirección |
-|---|---|
-| PostgreSQL 17 | `localhost:5433`, base `turnos`. Usuario `turnos` (dueño, para migraciones) y `turnos_app` (la aplicación). Contraseña igual al usuario |
-| Mailpit (emails de prueba) | SMTP en `localhost:1025`, interfaz web en http://localhost:8025 |
+El backend es un **monolito modular** (Spring Modulith): `business`, `users`, `catalog`, `schedule`, `booking`, `notifications` y `shared`. Cada módulo expone una API pública mínima y se comunica con los demás por esa API o por eventos; los límites entre módulos y entre capas se verifican en las pruebas.
 
-PostgreSQL usa el puerto **5433** para no chocar con una instalación local en el 5432.
+Algunas decisiones que vale la pena mirar:
 
-### 2. Backend
+- **Aislamiento entre negocios en dos barreras:** Hibernate filtra por negocio y, además, PostgreSQL aplica Row Level Security. La aplicación se conecta con un usuario sin privilegios para saltearla.
+- **Nunca hay doble reserva:** lo impide una restricción de exclusión en la base, no solo el código. Con 100 personas tomando el mismo horario a la vez, gana una y el resto recibe un 409 (prueba de carga con k6).
+- **Ningún email se pierde:** los avisos se guardan en una bandeja de salida en la misma transacción que el turno y se envían con reintentos; los recordatorios se reprograman si el turno se mueve.
+- **Horarios correctos en cualquier servidor:** las horas son de la sucursal y los instantes en UTC; las pruebas corren en otra zona horaria para detectar errores que dependan del servidor.
+- **Modo demo honesto:** en la demo los emails nunca se envían a nadie, porque las cuentas de ejemplo son públicas.
+
+Todas las decisiones, con su porqué, están en [docs/decisiones.md](docs/decisiones.md).
+
+## Calidad
+
+- **Backend:** más de 360 pruebas, incluidas las de integración contra PostgreSQL real (permisos por rol, aislamiento entre negocios, concurrencia, disponibilidad con cambios de horario) y las de arquitectura.
+- **Frontend:** pruebas unitarias, lint y tipos estrictos.
+- **De punta a punta:** Playwright en un celular y en escritorio: reserva completa con el código del buzón, "Mis turnos", panel y ausencia de scroll horizontal a 320 px.
+- **CI:** GitHub Actions corre todo en cada push, incluido Playwright contra la app levantada.
+
+## Correrlo en tu PC
+
+Con JDK 25, Node 24 y Docker Desktop:
 
 ```bash
+docker compose up -d                      # PostgreSQL y Mailpit
+
 cd backend
-mvnw.cmd spring-boot:run     # Windows
-./mvnw spring-boot:run       # macOS / Linux
-```
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo     # Windows: mvnw.cmd
 
-- API: http://localhost:8080/api
-- Documentación de la API (Swagger UI): http://localhost:8080/api/docs
-- Estado: http://localhost:8080/actuator/health
-
-Sin perfil explícito arranca con `dev`. Las migraciones de Flyway se aplican solas al iniciar.
-
-### 3. Frontend
-
-```bash
-cd frontend
+cd ../frontend
 npm install
-npm run dev
+echo NEXT_PUBLIC_DEMO_MODE=true > .env.local
+npm run dev                               # http://localhost:3000
 ```
 
-Abrí http://localhost:3000. Las llamadas a `/api/*` se redirigen al backend en `localhost:8080`. Para cambiar esa dirección (y la del sitio o la clave de Turnstile), copiá `.env.example` como `.env.local`.
+La guía completa (pruebas, IDE, login con Google) está en [docs/desarrollo.md](docs/desarrollo.md).
 
-Los tipos de la API (`src/lib/api/schema.d.ts`) se generan desde el OpenAPI del backend. Con el backend corriendo, después de cambiar un endpoint:
+## Documentación
 
-```bash
-npm run api:types
-```
-
-## Autenticación
-
-La API usa sesión en el servidor (guardada en PostgreSQL) con la cookie `SESSION` (HttpOnly). Los endpoints están en `/api/auth` y se pueden probar desde Swagger UI.
-
-| Endpoint | Para qué |
+| Documento | Qué tiene |
 |---|---|
-| `GET /api/auth/csrf` | Entrega el token CSRF (también queda en la cookie `XSRF-TOKEN`). Todo `POST` lo exige en el encabezado `X-XSRF-TOKEN` |
-| `POST /api/auth/register` | Crea la cuenta, inicia la sesión y envía el email de verificación |
-| `POST /api/auth/login` | Inicia sesión con email y contraseña |
-| `POST /api/auth/login-link` | Envía un link de acceso por email |
-| `POST /api/auth/login-link/consume` | Inicia sesión con el token del link |
-| `POST /api/auth/email-verification` | Verifica el email con el token del link |
-| `POST /api/auth/email-verification/resend` | Reenvía el link de verificación |
-| `GET /api/auth/me` | Devuelve la cuenta con sesión iniciada |
-| `POST /api/auth/logout` | Cierra la sesión |
+| [docs/desarrollo.md](docs/desarrollo.md) | Puesta en marcha, pruebas, IDE y estructura del repositorio |
+| [docs/api.md](docs/api.md) | Endpoints de la API, pantallas y permisos por rol |
+| [docs/publicacion.md](docs/publicacion.md) | Modo demo y cómo publicarlo en Vercel, Render y Neon |
+| [docs/especificacion-mvp.md](docs/especificacion-mvp.md) | Especificación funcional del MVP |
+| [docs/plan-mvp.md](docs/plan-mvp.md) | Plan de hitos |
+| [docs/decisiones.md](docs/decisiones.md) | Registro de decisiones técnicas |
 
-En desarrollo, los emails con los links se ven en Mailpit: http://localhost:8025.
+### Desarrollo asistido por IA
 
-### Login con Google
+El proyecto se construyó con agentes de IA (Claude Code) siguiendo reglas explícitas: [AGENTS.md](AGENTS.md) define la arquitectura, las convenciones y la definición de "terminado" de cada hito, y [MEMORY.md](MEMORY.md) guarda el estado y los aprendizajes entre sesiones.
 
-Está desactivado hasta que configures las credenciales:
+## Autor
 
-1. En [Google Cloud Console](https://console.cloud.google.com/apis/credentials), creá un **ID de cliente de OAuth** de tipo *Aplicación web*.
-2. Como **URI de redireccionamiento autorizado** cargá `http://localhost:3000/api/auth/oauth2/code/google`. Pasa por el frontend para que la cookie de sesión quede en el mismo dominio.
-3. Levantá el backend con el perfil `google` y las credenciales como variables de entorno:
-
-   ```powershell
-   $env:SPRING_PROFILES_ACTIVE = "dev,google"
-   $env:GOOGLE_CLIENT_ID = "..."
-   $env:GOOGLE_CLIENT_SECRET = "..."
-   cd backend; .\mvnw.cmd spring-boot:run
-   ```
-
-4. El login empieza en http://localhost:3000/api/auth/oauth2/authorization/google.
-
-Nunca subas las credenciales al repositorio.
-
-## Negocios, sucursales y equipo
-
-Todo exige sesión salvo la página pública. Los permisos dependen del rol en cada negocio (dueño, gerente o barbero).
-
-| Endpoint | Para qué | Quién |
-|---|---|---|
-| `POST /api/businesses` | Crea un negocio; quien lo crea queda como dueño | Cualquier persona con sesión |
-| `GET /api/businesses/slug-availability?slug=` | Verifica si un link está libre (mientras se escribe) | Cualquier persona con sesión |
-| `GET /api/businesses/{id}` | Datos del negocio | Su equipo |
-| `PUT /api/businesses/{id}/profile` | Cambia nombre, rubro y descripción | Dueño |
-| `PUT /api/businesses/{id}/slug` | Cambia el link; el anterior sigue llevando al negocio | Dueño |
-| `GET /api/businesses/{id}/branches` | Lista las sucursales | Su equipo |
-| `POST /api/businesses/{id}/branches` · `PUT …/branches/{branchId}` | Crea o cambia una sucursal (con zona horaria) | Dueño |
-| `GET /api/businesses/{id}/members` | Lista el equipo | Dueño y gerentes |
-| `PUT …/members/{userId}/role` | Nombra o quita gerentes | Dueño |
-| `PUT …/members/{userId}/branches` | Asigna sucursales | Dueño; gerente solo a barberos de sus sucursales |
-| `DELETE …/members/{userId}` | Da de baja a un miembro (nunca al dueño) | Dueño; gerente solo a barberos |
-| `POST` · `GET /api/businesses/{id}/invitations` · `DELETE …/invitations/{invitationId}` | Invita por email, lista o revoca invitaciones | Dueño (gerentes y barberos); gerente (barberos de sus sucursales) |
-| `POST /api/invitations/accept` | Acepta una invitación con el token del email (tiene que ser el mismo email) | La persona invitada |
-| `GET /api/memberships` | Negocios en los que trabaja la persona | Cualquier persona con sesión |
-| `GET /api/businesses/{id}/audit-log` | Registro de cambios, incluidos los accesos de soporte | Dueño |
-| `GET /api/public/businesses/{slug}` | Página pública con sus sucursales. Con un slug viejo, `canonicalSlug` indica el actual | Sin sesión |
-
-Un `ADMIN` de la plataforma puede entrar a un negocio para dar soporte solo si manda el encabezado `X-Support-Reason` con el motivo. El acceso queda en el registro de cambios del negocio.
-
-### Aislamiento entre negocios
-
-Hay dos barreras independientes:
-
-1. **Hibernate** filtra por `business_id` toda consulta sobre entidades de un negocio.
-2. **Row Level Security en PostgreSQL**: la aplicación se conecta con el usuario `turnos_app`, que no puede saltearse las políticas. Las migraciones las corre otro usuario, dueño de las tablas.
-
-El usuario `turnos_app` lo crea `docker/postgres/init/01-app-role.sql` la primera vez que se crea el volumen de Docker. Si tu base es anterior a ese script, crealo una vez a mano:
-
-```bash
-docker compose exec postgres psql -U turnos -d turnos -f /docker-entrypoint-initdb.d/01-app-role.sql
-```
-
-En producción se configuran por separado: `DATABASE_USERNAME` / `DATABASE_PASSWORD` (aplicación, sin privilegios) y `FLYWAY_USERNAME` / `FLYWAY_PASSWORD` (migraciones).
-
-## Catálogo
-
-Servicios del negocio (compartidos por todas las sucursales), combos y lo que hace cada profesional con su precio y su duración. Las rutas de la tabla cuelgan de `/api/businesses/{id}`, salvo la del catálogo público.
-
-| Endpoint | Para qué | Quién |
-|---|---|---|
-| `GET /services` | Lista los servicios (filtro opcional `?status=ACTIVE`, `INACTIVE`, `PROPOSED` o `REJECTED`) | Todo el equipo |
-| `POST /services` · `PUT /services/{serviceId}` | Agrega o edita un servicio: nombre, categoría, descripción, duración y precio base | Gerentes y dueño |
-| `PUT /services/{serviceId}/price-range` | Fija el rango en el que cada barbero elige su precio (`min` y `max` vacíos lo quitan) | Dueño |
-| `PUT /services/{serviceId}/active` | Retira o vuelve a ofrecer un servicio | Gerentes y dueño |
-| `POST /service-proposals` | Propone un servicio nuevo, que queda esperando aprobación | Todo el equipo |
-| `POST /services/{serviceId}/approve` · `…/reject` | Aprueba o rechaza una propuesta; quien la propuso pasa a ofrecer el servicio | Gerentes y dueño |
-| `GET` · `POST /combos` · `PUT /combos/{comboId}` | Combos de 2 a 5 servicios que hace un mismo profesional; precio y duración se suman | Ver: todo el equipo. Crear y editar: gerentes y dueño |
-| `GET /barbers/{userId}/services` | Lo que hace un profesional, con su precio y duración vigentes | Todo el equipo |
-| `PUT /barbers/{userId}/services/{serviceId}` | Ofrece un servicio o cambia el precio y la duración propios (vacíos heredan los valores base) | Cada uno los suyos; gerente, los barberos de sus sucursales; dueño, todos |
-| `DELETE /barbers/{userId}/services/{serviceId}` | Deja de ofrecer un servicio | Igual que la fila anterior |
-| `GET /price-requests` · `POST /price-requests/{offeringId}/approve` · `…/reject` | Precios fuera de rango que pidieron los barberos | Gerentes (solo de sus sucursales) y dueño |
-| `GET /api/public/businesses/{slug}/catalog` | Catálogo de la página pública: lo que se puede reservar, el precio de cada profesional y el "desde" | Sin sesión |
-
-Si un barbero elige un precio fuera del rango, la respuesta trae `"outcome": "AWAITING_APPROVAL"` y sigue rigiendo su precio anterior hasta que un gerente lo apruebe. Los cambios de servicios y precios quedan en el registro de cambios del negocio.
-
-## Agenda y disponibilidad
-
-Horarios de atención de cada sucursal, horario de cada profesional en cada sucursal, feriados, bloqueos y el cálculo de horarios libres. Las horas van en la hora local de la sucursal (`HH:mm`); los instantes, en UTC (ISO 8601). Las rutas de la tabla cuelgan de `/api/businesses/{id}`, salvo las públicas.
-
-| Endpoint | Para qué | Quién |
-|---|---|---|
-| `GET` · `PUT /branches/{branchId}/hours` | Horario de atención semanal de la sucursal. Se reemplaza entero; los días que no se mandan quedan cerrados | Ver: todos. Cambiar: gerentes de la sucursal y dueño |
-| `GET /barbers/{userId}/schedule` | Horario de un profesional en cada una de sus sucursales | Todo el equipo |
-| `PUT /barbers/{userId}/schedule/{branchId}` | Horario semanal del profesional en una sucursal. El descanso es el hueco entre dos franjas. No se puede superponer con su horario en otra sucursal (409 `schedule_overlap`) | Cada uno el suyo; gerente, los barberos de su sucursal; dueño, todos |
-| `GET /holidays?from=&to=` · `POST /holidays` · `DELETE /holidays/{id}` | Feriados cargados a mano, de una sucursal o (sin `branchId`) de todo el negocio | Ver: todos. Sucursal: su gerente o el dueño. Todo el negocio: el dueño |
-| `GET /time-blocks?from=&to=` | Bloqueos que se cruzan con el período | Todo el equipo |
-| `POST /barbers/{userId}/time-blocks` | Bloquea a un profesional (trámite, vacaciones) | Cada uno los suyos; gerente, los barberos de sus sucursales; dueño, todos |
-| `POST /branches/{branchId}/time-blocks` | Bloquea una sucursal entera (capacitación, refacción) | Gerentes de la sucursal y dueño |
-| `DELETE /time-blocks/{id}` | Quita un bloqueo | Quien puede crearlo |
-| `GET` · `PUT /schedule-rules` | Tiempo de preparación entre turnos, anticipación mínima (minutos) y máxima (días), cada cuántos minutos se ofrecen horarios | Ver: todos. Cambiar: el dueño |
-| `GET /api/public/businesses/{slug}/branches/{branchId}/hours` | Horario de atención de la sucursal | Sin sesión |
-| `GET /api/public/businesses/{slug}/availability?branchId=&date=&serviceId=` (o `comboId=`, y opcional `barberId=`) | Horarios libres de un día. Sin `barberId` es "cualquiera disponible": cada horario trae los profesionales libres con su precio y su duración | Sin sesión |
-
-Un horario se ofrece si el profesional trabaja y la sucursal atiende, no es feriado, no hay un bloqueo ni un turno (más el tiempo de preparación) y respeta la anticipación. Los horarios se calculan en la zona de la sucursal, incluidos los cambios de horario de verano.
-
-## Reservas
-
-### Reserva online (sin cuenta)
-
-En tres pasos, desde la página pública del negocio (`/api/public/businesses/{slug}`):
-
-| Endpoint | Para qué |
-|---|---|
-| `POST /holds` | Reserva el horario 5 minutos (`serviceId` o `comboId`, `branchId`, `startsAt` y opcional `barberId`; sin profesional, se asigna al libre con menos turnos ese día). 409 `slot_not_available` si ya no está libre |
-| `POST /holds/{holdId}/guest-code` | Invitados: guarda nombre, email y teléfono, verifica con Cloudflare Turnstile (`humanToken`) y manda un código de 6 dígitos por email |
-| `POST /holds/{holdId}/confirm` | Confirma con el `code` del email (5 intentos). Con sesión y email verificado no hace falta código. Llega un email de confirmación con el `.ics` y los botones para gestionar el turno |
-
-Los tres llevan límite de intentos por IP. El precio y la duración de cada servicio se copian en el turno: si después cambian, el turno no cambia.
-
-### Link del cliente
-
-Sin sesión, con el token del link del email (va en el cuerpo, no en la URL). Cada email trae su propio link y todos siguen funcionando. Los botones del email abren `/turno?token=…&accion=confirmar|reprogramar|cancelar` en el frontend.
-
-| Endpoint | Para qué |
-|---|---|
-| `POST /api/public/appointments/lookup` | Muestra el turno y hasta cuándo se puede cambiar (`changeableUntil`) |
-| `POST /api/public/appointments/confirm` | El cliente confirma que va a un turno que el local cargó "a confirmar" |
-| `POST /api/public/appointments/cancel` | Cancela, dentro del plazo del negocio (422 `change_deadline_passed`) |
-| `POST /api/public/appointments/reschedule` | Pasa el turno a otro horario libre del mismo profesional, dentro del plazo |
-
-### Agenda del equipo
-
-Rutas bajo `/api/businesses/{id}`. Cada persona trabaja con los turnos de sus sucursales (el dueño, de todas). El contacto del cliente lo ven el dueño, los gerentes y el profesional del turno.
-
-| Endpoint | Para qué | Quién |
-|---|---|---|
-| `GET /appointments?from=&to=` (opcional `branchId`, `barberId`) | Turnos del período (hasta un mes) | Todo el equipo, en su alcance |
-| `POST /appointments` | Carga un turno de un cliente que llamó o llegó sin reserva (`confirmed: false` lo deja a confirmar) | Todo el equipo, en sus sucursales |
-| `PUT /appointments/{id}/status` | `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `NO_SHOW` o `CANCELLED`, según el estado actual | Todo el equipo, en sus sucursales |
-| `PUT /appointments/{id}/time` | Mueve el turno a otro horario y, si se indica, a otro profesional | Todo el equipo, en sus sucursales |
-| `GET` · `PUT /booking-settings` | Plazo para que el cliente cancele o reprograme (horas antes; 2 por defecto) | Ver: todos. Cambiar: el dueño |
-
-Dos turnos activos del mismo profesional nunca se superponen: lo impide una restricción de exclusión en PostgreSQL, aunque dos personas reserven el mismo horario a la vez.
-
-### Cloudflare Turnstile
-
-En desarrollo y en las pruebas está desactivado (la aplicación lo avisa en el log). En producción es obligatorio: configurá `TURNSTILE_SECRET_KEY` con la clave secreta del sitio; sin ella la aplicación no arranca.
-
-## Sitio público
-
-Pensado para el celular: una columna, botones de 44 px, letra de 16 px en los formularios y la acción principal fija al pie. Probado a 320 y 375 px y en escritorio.
-
-| Página | Qué hay |
-|---|---|
-| `/` y `/buscar?q=` | Buscador de negocios por nombre, rubro o barrio, que tolera errores de tipeo y tildes ("barbria palerno" encuentra "Barbería El Tano", en Palermo) |
-| `/{slug}` | Página del negocio, armada en el servidor: servicios con precio "desde", combos, profesionales, sucursales con horarios, "Cómo llegar" y el QR para compartir. Open Graph y datos estructurados (schema.org). Un link viejo redirige al actual |
-| `/{slug}/profesionales/{id}` | Perfil del profesional: foto, descripción, especialidades, precios y "Reservar con…" |
-| `/{slug}/reservar` | Reserva en 3 pasos: servicio, día y horario (el horario queda guardado 5 minutos), y datos con código por email (o confirmar directo con cuenta y email verificado). Acepta lo ya elegido en el link: `?sucursal=&servicio=` o `combo=` y `profesional=` |
-| `/turno?token=` | El link de los emails: ver el turno, confirmar que va, cambiar día u horario o cancelar, dentro del plazo. `&accion=` abre directo la acción |
-| `/mis-turnos` | Con cuenta: próximos y anteriores en todos los negocios, "Repetir mi última reserva" y "Reservar de nuevo" |
-| `/ingresar`, `/registro`, `/verificar-email`, `/acceso` | Cuenta: ingresar con contraseña o con un link por email, crear cuenta y los links de los emails |
-
-Endpoints que se sumaron para el sitio:
-
-| Endpoint | Para qué | Quién |
-|---|---|---|
-| `GET /api/public/businesses?q=&page=&size=` | Buscador (páginas de 20; `hasMore` dice si hay más) | Público |
-| `GET /api/public/businesses/{slug}/professionals` y `/{id}` | Profesionales con perfil, sucursales y precios | Público |
-| `GET` · `PUT /api/businesses/{id}/barbers/{barberId}/profile` | Perfil público: descripción, hasta 6 especialidades y la foto como link https | El profesional, su gerente o el dueño |
-| `GET /api/me/appointments` | Mis últimos 50 turnos como cliente, en todos los negocios | Con sesión |
-
-## Panel del negocio
-
-En `/panel`, para el equipo. Barra inferior en el celular y navegación lateral desde tablet; cada rol ve solo lo que puede hacer. Probado a 320 y 375 px y en escritorio.
-
-| Página | Qué hay | Quién |
-|---|---|---|
-| `/panel/nuevo` | Alta guiada en 6 pasos: negocio y link, sucursal, horario, servicios, "yo atiendo" y equipo | Con cuenta |
-| `…/agenda` | Turnos por día o semana (Día por defecto en el celular), por sucursal y profesional; ficha del turno con sus acciones y "Nuevo turno" de mostrador | Todo el equipo |
-| `…/clientes` | Base de clientes: búsqueda por nombre, email o teléfono, ficha con historial, notas y preferencias | Gerente y dueño |
-| `…/catalogo` | Servicios, combos, rango de precios y aprobaciones (servicios propuestos y precios fuera de rango) | Todo el equipo (el barbero propone) |
-| `…/equipo` | Miembros con rol y sucursales, bajas, invitaciones pendientes. La invitación se acepta en `/invitacion?token=` | Gerente y dueño |
-| `…/sucursales` | Datos, horario de atención, días cerrados y cierres por horas de cada sucursal | Gerente (las suyas) y dueño |
-| `…/horarios` | Horario de cada profesional por sucursal y sus bloqueos; las reglas de la agenda, solo el dueño | Todo el equipo |
-| `…/perfil` | Perfil público y mis servicios con precio y duración propios | Todo el equipo |
-| `…/avisos` | Avisos de turnos nuevos, movidos y cancelados; marcar como leídos | Todo el equipo |
-| `…/ajustes` | Datos y link del negocio, plazo de cancelación, recordatorios y textos de los emails | Dueño |
-
-`GET /api/memberships` ahora incluye `branchIds` (vacío para el dueño, que trabaja en todas).
-
-## Notificaciones
-
-Cada cambio en un turno deja sus avisos en una bandeja de salida (tabla `notification`) en la misma transacción: si el turno se guarda, el aviso también, y no se pierde aunque el envío falle.
-
-| Cambio | Cliente | Profesional |
-|---|---|---|
-| Turno reservado | Email con `.ics` y botones (confirmar si está "a confirmar", cambiar, cancelar) | Aviso en la app y email |
-| Recordatorio (24 y 2 horas antes, configurable) | Email con botones | Resumen de su agenda a las 7:00 del día |
-| Turno movido | Email con `.ics` nuevo; los recordatorios se reprograman | Aviso en la app y email (también a quien lo tenía antes) |
-| Turno cancelado | Email con `.ics` cancelado; los recordatorios se cancelan | Aviso en la app y email |
-
-A quien hizo el cambio no se le avisa. Los emails salen apenas se confirma el cambio; una tarea de JobRunr revisa cada minuto los recordatorios, los resúmenes y los reintentos (5 intentos: al momento y a los 1, 5, 15 y 60 minutos). En desarrollo, todos los emails llegan a Mailpit (http://localhost:8025).
-
-Rutas bajo `/api/businesses/{id}`:
-
-| Endpoint | Para qué | Quién |
-|---|---|---|
-| `GET /appointments/{id}/notifications` | Registro de envíos del turno: `PENDING`, `SENT`, `FAILED`, `CANCELLED` o `SKIPPED` (por ejemplo, el cliente no dejó email) | Quien ve el turno |
-| `GET /notices` · `GET /notices/unread-count` | Mis avisos en la app (paginados) y cuántos no leí | Todo el equipo |
-| `POST /notices/{id}/read` · `POST /notices/read-all` | Marca avisos como leídos | Cada uno, los suyos |
-| `GET` · `PUT /notification-settings` | Horas antes del turno en que se recuerda (`reminderHours`, hasta 3; vacío los desactiva) | Ver: todos. Cambiar: el dueño |
-| `GET /message-templates` | Textos de los emails al cliente y las variables disponibles | Gerentes y dueño |
-| `PUT` · `DELETE /message-templates/{type}` | Personaliza el asunto y el mensaje, o vuelve al texto de Laciturnos | El dueño |
-
-Los textos aceptan las variables `{nombre}`, `{servicio}`, `{barbero}`, `{sucursal}`, `{direccion}`, `{hora}` y `{negocio}`. El diseño del email, los datos del turno y los botones son fijos: el negocio escribe texto, no HTML.
-
-### Emails en producción (Resend)
-
-En producción los emails salen por [Resend](https://resend.com), por SMTP. Para configurarlo:
-
-1. Crear una cuenta en Resend.
-2. En **Domains**, agregar el dominio desde el que salen los emails (por ejemplo `laciturnos.com.ar`) y cargar en el DNS del dominio los registros que indica Resend (SPF y DKIM). Esperar a que figure como verificado.
-3. En **API Keys**, crear una clave con permiso **Sending access**, limitada a ese dominio.
-4. Configurar las variables de entorno del servidor:
-
-| Variable | Valor |
-|---|---|
-| `MAIL_PASSWORD` | La API key de Resend (empieza con `re_`). Es secreta: nunca va en el repositorio |
-| `MAIL_FROM` | Una dirección del dominio verificado, por ejemplo `turnos@laciturnos.com.ar` |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` | Opcionales: por defecto `smtp.resend.com`, `587` y `resend` |
-
-La conexión exige TLS. El registro de envíos marca `SENT` cuando Resend acepta el email; el estado "entregado" requiere sumar los webhooks de Resend.
-
-Las tablas de JobRunr las crea Flyway (`V14`). Al actualizar JobRunr, revisar si trae migraciones nuevas y agregarlas en una migración propia.
-
-## Modo demo (portfolio)
-
-Laciturnos se publica como proyecto de portfolio. En el modo demo:
-
-- **Los emails no se envían**: quedan en el buzón de la demo (`/demo/emails`), con su HTML, sus links y el `.ics`. Donde la app dice "te mandamos un email" aparece un atajo al buzón. Cualquiera que escriba una dirección ve sus emails: la página pide usar direcciones inventadas. Se borran a los 3 días.
-- **Datos de ejemplo**: "Barbería El Faro" (`/barberia-el-faro`) con dos sucursales, tres profesionales, servicios, un combo, clientes y turnos alrededor de hoy. Se reinicia en cada arranque del backend.
-- **Cuentas de ejemplo** (contraseña `demo1234`, pública a propósito), con "Entrar" de un toque en `/demo`:
-
-| Cuenta | Rol |
-|---|---|
-| `duena.demo@example.com` | Dueña |
-| `gerente.demo@example.com` | Gerente de las dos sucursales |
-| `nico.demo@example.com`, `juli.demo@example.com`, `sofi.demo@example.com` | Profesionales |
-| `cliente.demo@example.com` | Cliente con turnos |
-
-Se activa con el perfil `demo` del backend (se suma a otro: `prod,demo` o `dev,demo`) y `NEXT_PUBLIC_DEMO_MODE=true` en el frontend:
-
-```bash
-# Backend en modo demo, en la PC
-cd backend
-mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev,demo     # Windows
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo       # macOS / Linux
-```
-
-Los datos de ejemplo están en `backend/src/main/resources/db/demo/R__demo_data.sql`: una migración repetible de Flyway que solo se suma con el perfil `demo`.
-
-## Pruebas de punta a punta y de carga
-
-Las pruebas de punta a punta (Playwright, en `frontend/e2e/`) corren en un celular (Pixel 7) y en escritorio contra la app en modo demo: reserva como invitado con el código del buzón, entrada al panel con la cuenta de ejemplo y ausencia de scroll horizontal a 320 px. Con el backend (`dev,demo`) y el frontend (`NEXT_PUBLIC_DEMO_MODE=true`) corriendo:
-
-```bash
-cd frontend
-npx playwright install chromium   # la primera vez
-npm run e2e
-```
-
-En CI corren en el job "Punta a punta".
-
-La prueba de carga (k6, `load/same-slot.js`) manda a 100 personas a tomar el mismo horario a la vez: tiene que ganar una sola y el resto recibir 409, sin errores. Como todos los pedidos salen de la misma IP, el backend se levanta con un límite de intentos alto:
-
-```bash
-cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo "-Dspring-boot.run.arguments=--app.rate-limit.requests-per-minute=100000"
-# en otra terminal, desde la raíz
-docker run --rm -i --add-host=host.docker.internal:host-gateway grafana/k6:1.3.0 run -e BASE_URL=http://host.docker.internal:8080 - < load/same-slot.js
-```
-
-## Publicación (Vercel + Render + Neon)
-
-Gratis y en los subdominios de cada servicio: el frontend en Vercel, el backend (Docker) en Render y PostgreSQL en Neon. El navegador habla solo con Vercel; Vercel pasa `/api/*` al backend, así la cookie de sesión queda en un solo dominio.
-
-1. **Neon** (base de datos). Crear un proyecto en la región *AWS US East 1 (N. Virginia)* con PostgreSQL 17. En el **SQL Editor**, crear el rol de la aplicación (sin privilegios, así le aplica Row Level Security) con una contraseña larga:
-
-   ```sql
-   CREATE ROLE turnos_app LOGIN PASSWORD '<contraseña>' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
-   ```
-
-   Usar la conexión **directa** (el host *sin* `-pooler`): la aplicación fija el negocio de cada conexión y el pooler de Neon las comparte entre clientes. Las migraciones las corre el dueño de la base (`neondb_owner`).
-
-2. **Cloudflare Turnstile** (anti-bots de la reserva como invitado). En el panel de Cloudflare, **Turnstile → Add widget**, con el dominio `<proyecto>.vercel.app`. Da una clave pública (frontend) y una secreta (backend).
-
-3. **Render** (backend). **New → Blueprint** con este repositorio: toma `render.yaml` (Docker, plan gratis, perfiles `prod,demo`). Completar las variables:
-
-| Variable | Valor |
-|---|---|
-| `DATABASE_URL` | `jdbc:postgresql://<host directo de Neon>/neondb?sslmode=require` |
-| `DATABASE_PASSWORD` | La contraseña de `turnos_app` |
-| `FLYWAY_USERNAME`, `FLYWAY_PASSWORD` | `neondb_owner` y su contraseña (Neon → Connection details) |
-| `FRONTEND_URL` | `https://<proyecto>.vercel.app` |
-| `TURNSTILE_SECRET_KEY` | La clave secreta de Turnstile |
-
-   En el plan gratis el servicio se duerme a los 15 minutos sin uso: la primera visita después tarda alrededor de un minuto. Al despertar, la demo vuelve a sus datos de ejemplo.
-
-4. **Vercel** (frontend). **Add New → Project** con este repositorio, **Root Directory** `frontend`. Variables de entorno:
-
-| Variable | Valor |
-|---|---|
-| `BACKEND_URL` | `https://laciturnos-api.onrender.com` (la URL que da Render) |
-| `NEXT_PUBLIC_SITE_URL` | `https://<proyecto>.vercel.app` |
-| `NEXT_PUBLIC_DEMO_MODE` | `true` |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | La clave pública de Turnstile |
-
-Cada push a `main` vuelve a publicar los dos. Para un uso real (fuera de la demo): sacar `demo` de `SPRING_PROFILES_ACTIVE` y `NEXT_PUBLIC_DEMO_MODE`, y configurar Resend (ver "Emails en producción").
-
-## Pruebas
-
-```bash
-# Backend: formato, compilación y todas las pruebas (incluye PostgreSQL real con Testcontainers)
-cd backend
-mvnw.cmd verify              # Windows
-./mvnw verify                # macOS / Linux
-
-# Frontend
-cd frontend
-npm run lint
-npm run typecheck
-npm test
-npm run build
-```
-
-Si `verify` falla por formato, corré `mvnw.cmd spotless:apply` (o `./mvnw spotless:apply`) y volvé a probar.
-
-## IDE
-
-### IntelliJ IDEA (backend)
-
-1. **File → Open** y elegí la carpeta raíz del repositorio. IntelliJ importa el backend como proyecto Maven automáticamente.
-2. En **File → Project Structure → SDK** elegí el JDK 25.
-3. Las configuraciones de ejecución ya vienen incluidas (carpeta `.run/`): *Backend (dev)*, *Backend - verify*, *Backend - formatear*, *Docker Compose - levantar* y *Frontend (dev)*.
-4. Para que el formato de IntelliJ coincida con Spotless, instalá el plugin **palantir-java-format** desde el Marketplace y activalo en **Settings → palantir-java-format**.
-
-Funciona con IntelliJ IDEA Community.
-
-### VS Code (frontend)
-
-Abrí la carpeta `frontend/`. VS Code te va a sugerir las extensiones recomendadas (ESLint, Tailwind CSS, Vitest y Claude Code).
-
-## Estructura
-
-```
-/
-├── backend/             # Spring Boot 4.1, monolito modular (Spring Modulith)
-├── frontend/            # Next.js 16, TypeScript, Tailwind CSS, shadcn/ui
-├── docs/                # Especificación
-├── .github/workflows/   # CI: build y pruebas en cada push
-├── .run/                # Configuraciones de ejecución de IntelliJ
-└── docker-compose.yml   # PostgreSQL y Mailpit para desarrollo
-```
+**Lautaro Lacivita** · [GitHub](https://github.com/LautaroLacivitaDev)

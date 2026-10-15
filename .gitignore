@@ -25,3 +25,6 @@ frontend/out/
 
 # Claude Code (configuración local)
 .claude/settings.local.json
+
+# Configuración local de Claude Code (no se versiona)
+.claude/
