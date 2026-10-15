@@ -275,3 +275,14 @@ Todas las decisiones del proyecto con su motivo, en orden cronológico. [MEMORY.
 | PWA instalable (manifest, íconos, abre en `/panel`), sin service worker ni notificaciones push | Instalarla en el celular no necesita trabajar sin conexión; push no está en la especificación del MVP |
 | La imagen del backend corre con la JVM en UTC, memoria acotada (70 % de 512 MB) y el GC serie | El plan gratis tiene 512 MB; probada contra una base vacía con `prod,demo`: arranca en ~15 s con ~390 MB |
 | Neon por conexión directa (sin el pooler) | La aplicación fija el negocio de cada conexión; el pooler en modo transacción compartiría ese estado entre clientes |
+
+## Revisión de QA después de publicar (2026-10-14)
+
+| Decisión | Por qué |
+|---|---|
+| "Mis turnos" tiene "Cambiar o cancelar": el backend comprueba que el turno es de la cuenta (`POST /api/me/appointments/{id}/manage-link`, 404 si no) y emite un link de gestión nuevo, el mismo que llega por email | Desde la cuenta no se podía cancelar. Reutilizar la gestión por link evita duplicar confirmar, cambiar y cancelar: rigen el mismo plazo y las mismas reglas |
+| En la reserva, el servicio se elige aunque no haya sucursal elegida; un aviso pide la sucursal y otro avisa si lo elegido no se hace en ella | Con dos sucursales, la lista de servicios quedaba deshabilitada sin explicación (error reportado) |
+| En la página del negocio y en el perfil del profesional, cada servicio lleva a reservar con esa opción ya elegida | Es lo que se espera al tocar un servicio |
+| En "Nuevo turno" del panel, el profesional y el servicio dicen qué falta elegir antes, los errores se ven en cada selector y cambiar la sucursal o el profesional limpia lo que dejó de valer | Mismo problema que la reserva: campos vacíos o deshabilitados sin explicación |
+| Las secciones que no son del rol (por ejemplo clientes o ajustes para un profesional) muestran "No tenés acceso a esta sección" si se llega por la dirección | Antes se veía la pantalla con errores 403 (los datos ya estaban protegidos en el servidor) |
+| Zonas tocables de 44 px también en la barra superior del panel y en "Día / Semana" | Medían 28 y 40 px |
