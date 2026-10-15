@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/panel/role-gate";
 import { Team } from "@/components/panel/team/team";
 import { messages } from "@/messages/es-AR";
 
@@ -7,5 +8,9 @@ export const metadata = { title: messages.panel.team.title };
 export const instant = false;
 
 export default function TeamPage() {
-  return <Team />;
+  return (
+    <RoleGate role="MANAGER">
+      <Team />
+    </RoleGate>
+  );
 }

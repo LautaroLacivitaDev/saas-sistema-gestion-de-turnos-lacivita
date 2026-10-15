@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { CustomerDetail } from "@/components/panel/customers/customer-detail";
+import { RoleGate } from "@/components/panel/role-gate";
 import { messages } from "@/messages/es-AR";
 
 export const metadata = { title: messages.panel.customers.title };
@@ -18,5 +19,9 @@ export default function CustomerPage({ params }: PageProps<"/panel/[businessId]/
 
 async function Customer({ params }: Pick<PageProps<"/panel/[businessId]/clientes/[customerId]">, "params">) {
   const { customerId } = await params;
-  return <CustomerDetail customerId={customerId} />;
+  return (
+    <RoleGate role="MANAGER">
+      <CustomerDetail customerId={customerId} />
+    </RoleGate>
+  );
 }

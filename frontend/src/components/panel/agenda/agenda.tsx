@@ -78,7 +78,7 @@ export function Agenda() {
               aria-checked={view === option}
               onClick={() => setChosenView(option)}
               className={cn(
-                "h-10 rounded-md px-4 text-sm",
+                "h-11 rounded-md px-4 text-sm",
                 view === option ? "bg-primary text-primary-foreground" : "text-muted-foreground",
               )}
             >

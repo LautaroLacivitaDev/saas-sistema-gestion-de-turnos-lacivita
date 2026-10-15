@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/panel/role-gate";
 import { Branches } from "@/components/panel/branches/branches";
 import { messages } from "@/messages/es-AR";
 
@@ -7,5 +8,9 @@ export const metadata = { title: messages.panel.branches.title };
 export const instant = false;
 
 export default function BranchesPage() {
-  return <Branches />;
+  return (
+    <RoleGate role="MANAGER">
+      <Branches />
+    </RoleGate>
+  );
 }

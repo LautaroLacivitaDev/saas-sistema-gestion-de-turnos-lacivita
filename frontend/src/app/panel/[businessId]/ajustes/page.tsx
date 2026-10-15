@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/panel/role-gate";
 import { Settings } from "@/components/panel/settings/settings";
 import { messages } from "@/messages/es-AR";
 
@@ -7,5 +8,9 @@ export const metadata = { title: messages.panel.settings.title };
 export const instant = false;
 
 export default function SettingsPage() {
-  return <Settings />;
+  return (
+    <RoleGate role="OWNER">
+      <Settings />
+    </RoleGate>
+  );
 }

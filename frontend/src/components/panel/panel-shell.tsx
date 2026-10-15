@@ -135,8 +135,8 @@ function TopBar({ businessId, name }: { businessId: string; name: string }) {
   const count = unread.data?.unread ?? 0;
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b bg-background/95 px-4 backdrop-blur md:hidden">
-      <Link href="/panel" className="min-w-0 truncate text-lg font-semibold">
-        {name}
+      <Link href="/panel" className="flex h-11 min-w-0 items-center text-lg font-semibold">
+        <span className="truncate">{name}</span>
       </Link>
       <Link
         href={`/panel/${businessId}/avisos`}
