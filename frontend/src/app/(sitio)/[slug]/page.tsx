@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
@@ -74,7 +75,7 @@ async function BusinessContent({ params }: Pick<PageProps<"/[slug]">, "params">)
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(businessJsonLd(business, catalog, url)) }}
       />
       <Header business={business} />
-      <Services catalog={catalog} />
+      <Services slug={slug} catalog={catalog} branches={business.branches} />
       {professionals.length > 0 && <Team slug={slug} professionals={professionals} />}
       <Branches branches={business.branches} hours={hours} />
       <Share name={business.name} url={url} />
@@ -98,7 +99,9 @@ function Header({ business }: { business: BusinessPage }) {
   );
 }
 
-function Services({ catalog }: { catalog: Catalog }) {
+/** Cada servicio o combo lleva a reservar con esa opción ya elegida (y la sucursal, si hay una sola). */
+function Services({ slug, catalog, branches }: { slug: string; catalog: Catalog; branches: Branch[] }) {
+  const branchId = branches.length === 1 ? branches[0]!.id : undefined;
   if (catalog.services.length === 0 && catalog.combos.length === 0) {
     return <p className="text-muted-foreground">{t.noServices}</p>;
   }
@@ -114,7 +117,11 @@ function Services({ catalog }: { catalog: Catalog }) {
       </h2>
       <ul className="divide-y rounded-xl border">
         {catalog.services.map((service) => (
-          <li key={service.id} className="flex items-start justify-between gap-4 p-4">
+          <li key={service.id}>
+            <Link
+              href={bookingHref(slug, { branchId, item: { kind: "service", id: service.id } })}
+              className="flex min-h-14 items-start justify-between gap-4 p-4 hover:bg-muted/50"
+            >
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="font-medium">{service.name}</span>
               {service.description && (
@@ -124,7 +131,11 @@ function Services({ catalog }: { catalog: Catalog }) {
                 {durations(service.barbers.map((barber) => barber.durationMinutes))}
               </span>
             </div>
-            <span className="shrink-0 text-sm font-medium">{t.from(money(service.fromPrice))}</span>
+            <span className="flex shrink-0 items-center gap-1 text-sm font-medium">
+              {t.from(money(service.fromPrice))}
+              <ChevronRightIcon aria-hidden className="size-4 text-muted-foreground" />
+            </span>
+            </Link>
           </li>
         ))}
       </ul>
@@ -133,14 +144,22 @@ function Services({ catalog }: { catalog: Catalog }) {
           <h3 className="text-lg font-semibold">{t.combos}</h3>
           <ul className="divide-y rounded-xl border">
             {catalog.combos.map((combo) => (
-              <li key={combo.id} className="flex items-start justify-between gap-4 p-4">
+              <li key={combo.id}>
+                <Link
+                  href={bookingHref(slug, { branchId, item: { kind: "combo", id: combo.id } })}
+                  className="flex min-h-14 items-start justify-between gap-4 p-4 hover:bg-muted/50"
+                >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="font-medium">{combo.name}</span>
                   <span className="text-sm text-muted-foreground">
                     {durations(combo.barbers.map((barber) => barber.durationMinutes))}
                   </span>
                 </div>
-                <span className="shrink-0 text-sm font-medium">{t.from(money(combo.fromPrice))}</span>
+                <span className="flex shrink-0 items-center gap-1 text-sm font-medium">
+                  {t.from(money(combo.fromPrice))}
+                  <ChevronRightIcon aria-hidden className="size-4 text-muted-foreground" />
+                </span>
+                </Link>
               </li>
             ))}
           </ul>

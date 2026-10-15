@@ -138,7 +138,17 @@ function NewAppointmentForm({
   return (
     <form noValidate className="flex flex-col gap-4" onSubmit={form.handleSubmit((data) => book.mutate(data))}>
       {panel.branches.length > 1 && (
-        <SelectField label={t.branch} {...form.register("branchId")}>
+        <SelectField
+          label={t.branch}
+          error={errors.branchId?.message}
+          {...form.register("branchId", {
+            // Otra sucursal puede tener otros profesionales: lo elegido después deja de valer.
+            onChange: () => {
+              form.setValue("barberId", "");
+              form.setValue("item", "");
+            },
+          })}
+        >
           <option value="">{t.form.choose}</option>
           {panel.branches.map((option) => (
             <option key={option.id} value={option.id}>
@@ -147,7 +157,13 @@ function NewAppointmentForm({
           ))}
         </SelectField>
       )}
-      <SelectField label={t.professional} {...form.register("barberId")}>
+      <SelectField
+        label={t.professional}
+        disabled={!branchId}
+        hint={!branchId ? t.form.chooseBranchFirst : undefined}
+        error={errors.barberId?.message}
+        {...form.register("barberId", { onChange: () => form.setValue("item", "") })}
+      >
         <option value="">{t.form.choose}</option>
         {candidates.map((professional) => (
           <option key={professional.barberId} value={professional.barberId}>
@@ -155,7 +171,13 @@ function NewAppointmentForm({
           </option>
         ))}
       </SelectField>
-      <SelectField label={t.form.service} {...form.register("item")} disabled={!barberId}>
+      <SelectField
+        label={t.form.service}
+        disabled={!barberId}
+        hint={!barberId ? t.form.chooseProfessionalFirst : undefined}
+        error={errors.item?.message}
+        {...form.register("item")}
+      >
         <option value="">{t.form.choose}</option>
         {offers.map((offer) => (
           <option key={offer.value} value={offer.value}>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -88,14 +89,26 @@ async function ProfessionalContent({ params }: Pick<Props, "params">) {
         </h2>
         <ul className="divide-y rounded-xl border">
           {professional.services.map((service) => (
-            <li key={service.serviceId} className="flex items-center justify-between gap-4 p-4">
+            <li key={service.serviceId}>
+              <Link
+                href={bookingHref(slug, {
+                  barberId,
+                  item: { kind: "service", id: service.serviceId },
+                  ...(branches.length === 1 ? { branchId: branches[0]!.id } : {}),
+                })}
+                className="flex min-h-14 items-center justify-between gap-4 p-4 hover:bg-muted/50"
+              >
               <span className="flex flex-col">
                 <span className="font-medium">{service.name}</span>
                 <span className="text-sm text-muted-foreground">
                   {messages.business.minutes(service.durationMinutes)}
                 </span>
               </span>
-              <span className="shrink-0 font-medium">{money(service.price)}</span>
+              <span className="flex shrink-0 items-center gap-1 font-medium">
+                {money(service.price)}
+                <ChevronRightIcon aria-hidden className="size-4 text-muted-foreground" />
+              </span>
+              </Link>
             </li>
           ))}
         </ul>

@@ -50,6 +50,9 @@ export function ServiceStep({
     ? options.filter((option) => choicesFor(catalog, professionals, option.item, branchId).length > 0)
     : options;
   const chosen = available.find((option) => option.item.kind === item?.kind && option.item.id === item?.id);
+  // Lo elegido antes de cambiar de sucursal puede no hacerse en la nueva.
+  const notInBranch = item !== undefined && chosen === undefined;
+  const hint = !branchId ? t.chooseBranch : notInBranch ? t.notInBranch : undefined;
 
   return (
     <>
@@ -76,7 +79,9 @@ export function ServiceStep({
         </fieldset>
       )}
 
-      <fieldset className="flex min-w-0 flex-col gap-2" disabled={!branchId}>
+      {/* DECISIÓN: el servicio se puede elegir antes que la sucursal: deshabilitarlo dejaba la lista
+          muerta sin explicación cuando el negocio tiene varias sucursales. */}
+      <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="mb-2 text-sm font-medium">{t.service}</legend>
         <ul className="flex flex-col gap-2">
           {available.map((option) => {
@@ -105,7 +110,12 @@ export function ServiceStep({
       </fieldset>
 
       <BottomBarSpacer />
-      <BottomBar>
+      <BottomBar className="flex-col items-stretch gap-2">
+        {hint && (
+          <p role="status" className="text-center text-sm text-muted-foreground">
+            {hint}
+          </p>
+        )}
         <Button size="touch" className="w-full" disabled={!branchId || !chosen} onClick={onContinue}>
           {t.continue}
         </Button>
